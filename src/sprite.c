@@ -1,10 +1,32 @@
 #include <stddef.h>
+#include <stdlib.h>
 #include "sprite.h"
 
 int should_stop(Sprite* self);
 
 int is_moving(Sprite* self) {
     return self->d.x != 0 || self->d.y != 0;
+}
+
+int is_aligned(Sprite* self) {
+    return self->p.x % TILE_W == 0 && self->p.y % TILE_H == 0;
+}
+
+Delta get_delta(Sprite* self, Sprite* other) {
+    int16_t x = other->p.x - self->p.x; 
+    int16_t y = other->p.y - self->p.y; 
+    int16_t dx = 0;
+    int16_t dy = 0;
+
+    if (x != 0) {
+        dx = x / abs(x);
+    }
+
+    if (y != 0) {
+        dy = y / abs(y);
+    }
+
+    return (Delta) { dx, dy };
 }
 
 Delta invert_delta(Delta d) {
@@ -23,7 +45,7 @@ Point calc_tile(Point p, Delta d1) {
    return calc_point(p, d2);
 }
 
-int cmp_point(Point p1, Point p2) {
+int point_equals(Point p1, Point p2) {
     return p1.x == p2.x && p1.y == p2.y;
 }
 

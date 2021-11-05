@@ -14,6 +14,7 @@ void set_sprite_pos(GameState* gs, int16_t x, int16_t y, uint8_t id);
 void add_wall(GameState* gs, int16_t x, int16_t y, uint8_t tile);
 void swap_sprites(GameState* gs, int16_t a, int16_t b);
 void move_pcs(GameState* gs, int8_t dx, int8_t dy);
+void post_update(GameState* gs);
 void render_sprites(GameState* gs, Backend* be);
 void limit_fps(GameState* gs);
 void decorate(Backend* be);
@@ -22,6 +23,7 @@ void render_stats(GameState* gs, Backend* be);
 Adjacent find_adjacent(GameState* gs, Sprite* s, Delta d);
 int playing(GameState* gs, Backend* be);
 int paused(GameState* gs, Backend* be);
+int game_over(GameState* gs);
 
 const int16_t BOUND_X = MAX_X - TILE_W;
 const int16_t BOUND_Y = MAX_Y - TILE_H;
@@ -43,7 +45,7 @@ GameState* gs_init(void) {
     gs->high = 10000;
     gs->score = 0;
     gs->energy = 1000;
-    gs->lives = 2; 
+    gs->lives = 5; 
     gs->n_sprites = 1;
 
     load_level(gs);
@@ -59,6 +61,8 @@ int gs_update(GameState* gs, Backend* be) {
             return playing(gs, be); 
         case S_PAUSED:
             return paused(gs, be); 
+        case S_GAME_OVER:
+            return game_over(gs);
         default:
             return 0; 
     }
@@ -189,6 +193,22 @@ void move_pcs(GameState* gs, int8_t dx, int8_t dy) {
     }
 }
 
+void post_update(GameState* gs) {
+    Sprite* anti = &gs->sprites[ID_ANTI];
+    Sprite* matter = &gs->sprites[ID_MATTER];
+
+    if (is_aligned(anti) && is_aligned(matter)) {
+        Delta d = get_delta(anti, matter);
+
+        if (d.x == 0 && d.y == 0) {
+            gs->scene = S_GAME_OVER;
+        } else if (d.x == 0 || d.y == 0) {
+            move_sprite(anti, d);
+            move_sprite(matter, invert_delta(d));
+        }
+    }
+}
+
 Adjacent find_adjacent(GameState* gs, Sprite* s1, Delta d) {
     Point front = calc_tile(s1->p, d);
     Point back = calc_tile(s1->p, invert_delta(d));
@@ -198,11 +218,11 @@ Adjacent find_adjacent(GameState* gs, Sprite* s1, Delta d) {
     for (int i = 1; i < gs->n_sprites; i++) {
         Sprite* s2 = &gs->sprites[i];
         
-        if (cmp_point(s2->p, front)) {
+        if (point_equals(s2->p, front)) {
             adj.front = s2;
-        } else if (cmp_point(s2->p, back)) {
+        } else if (point_equals(s2->p, back)) {
             adj.back = s2;
-        } else if (cmp_point(s2->p, next)) {
+        } else if (point_equals(s2->p, next)) {
             adj.next = s2;
         }
     }
@@ -319,6 +339,8 @@ int playing(GameState* gs, Backend* be) {
     limit_fps(gs);
     be_present(be);
 
+    post_update(gs);
+
     switch(be_get_event(be)) {
         case KD_UP:
             move_pcs(gs, 0, -1);
@@ -368,4 +390,16 @@ int paused(GameState* gs, Backend* be) {
     }
     
     return 1;
+}
+
+int game_over(GameState* gs) {
+    gs->lives -= 1;
+    
+    if (gs->lives >= 0) {
+        load_level(gs);
+        gs->scene = S_PLAYING;
+        return 1;
+    }
+
+    return 0;
 }

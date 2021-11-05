@@ -34,10 +34,12 @@ typedef struct {
 } Adjacent;
 
 int is_moving(Sprite* self);
+int is_aligned(Sprite* self);
+Delta get_delta(Sprite* self, Sprite* other);
 Delta invert_delta(Delta d);
 Point calc_point(Point p, Delta d); 
 Point calc_tile(Point p, Delta d); 
-int cmp_point(Point p1, Point p2);
+int point_equals(Point p1, Point p2);
 void move_sprite(Sprite* self, Delta d);
 void push_sprite(Sprite* self, Delta d);
 int can_move(Adjacent* a); 

@@ -7,6 +7,7 @@
 typedef enum {
     S_PLAYING,
     S_PAUSED,
+    S_GAME_OVER,
 } Scene;
 
 typedef struct {
