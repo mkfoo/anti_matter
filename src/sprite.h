@@ -1,5 +1,6 @@
 #pragma once
 
+#include <stdbool.h>
 #include <stdint.h>
 #include "antimatter.h"
 
@@ -33,15 +34,16 @@ typedef struct {
     Sprite* next;
 } Adjacent;
 
-int is_moving(Sprite* self);
-int is_aligned(Sprite* self);
 Delta get_delta(Sprite* self, Sprite* other);
 Delta invert_delta(Delta d);
 Point calc_point(Point p, Delta d); 
 Point calc_tile(Point p, Delta d); 
-int point_equals(Point p1, Point p2);
+bool is_moving(Sprite* self);
+bool is_aligned(Sprite* self);
+bool point_equals(Point p1, Point p2);
+bool point_between(Point self, Point p1, Point p2);
+bool can_move(Adjacent* a); 
+bool can_pull(Sprite* self, Sprite* other);
 void move_sprite(Sprite* self, Delta d);
 void push_sprite(Sprite* self, Delta d);
-int can_move(Adjacent* a); 
-int can_pull(Sprite* self, Sprite* other);
 void update_sprite(Sprite* self);

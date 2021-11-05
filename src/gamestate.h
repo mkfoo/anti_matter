@@ -1,5 +1,6 @@
 #pragma once
 
+#include <stdbool.h>
 #include "antimatter.h"
 #include "backend.h"
 #include "sprite.h"
@@ -26,6 +27,6 @@ typedef struct {
 
 GameState* gs_init(void);
 
-int gs_update(GameState* gs, Backend* be);
+bool gs_update(GameState* gs, Backend* be);
 
 void gs_quit(GameState* gs);

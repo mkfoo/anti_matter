@@ -20,10 +20,10 @@ void limit_fps(GameState* gs);
 void decorate(Backend* be);
 void render_help(GameState* gs, Backend* be);
 void render_stats(GameState* gs, Backend* be);
+bool playing(GameState* gs, Backend* be);
+bool paused(GameState* gs, Backend* be);
+bool game_over(GameState* gs);
 Adjacent find_adjacent(GameState* gs, Sprite* s, Delta d);
-int playing(GameState* gs, Backend* be);
-int paused(GameState* gs, Backend* be);
-int game_over(GameState* gs);
 
 const int16_t BOUND_X = MAX_X - TILE_W;
 const int16_t BOUND_Y = MAX_Y - TILE_H;
@@ -53,7 +53,7 @@ GameState* gs_init(void) {
     return gs;
 }
 
-int gs_update(GameState* gs, Backend* be) {
+bool gs_update(GameState* gs, Backend* be) {
     advance(gs);
 
     switch (gs->scene) {
@@ -64,7 +64,7 @@ int gs_update(GameState* gs, Backend* be) {
         case S_GAME_OVER:
             return game_over(gs);
         default:
-            return 0; 
+            return false; 
     }
 }
 
@@ -203,6 +203,14 @@ void post_update(GameState* gs) {
         if (d.x == 0 && d.y == 0) {
             gs->scene = S_GAME_OVER;
         } else if (d.x == 0 || d.y == 0) {
+            for (int i = 3; i < gs->n_sprites; i++) {
+                Sprite* s = &gs->sprites[i];
+
+                if (point_between(s->p, anti->p, matter->p)) {
+                    return;
+                }
+            }
+
             move_sprite(anti, d);
             move_sprite(matter, invert_delta(d));
         }
@@ -332,7 +340,7 @@ void render_help(GameState* gs, Backend* be) {
     be_blit_text(be, x, y + m * 8, "F10       QUIT"); 
 }
 
-int playing(GameState* gs, Backend* be) {
+bool playing(GameState* gs, Backend* be) {
     render_sprites(gs, be);
     render_stats(gs, be);
     decorate(be);
@@ -362,15 +370,15 @@ int playing(GameState* gs, Backend* be) {
             break;
         case KD_F1:
         case QUIT:
-            return 0;
+            return false;
         default:
             break;
     }
 
-    return 1;
+    return true;
 }
 
-int paused(GameState* gs, Backend* be) {
+bool paused(GameState* gs, Backend* be) {
     render_help(gs, be);
     render_stats(gs, be);
     decorate(be);
@@ -384,22 +392,22 @@ int paused(GameState* gs, Backend* be) {
             break;
         case KD_F1:
         case QUIT:
-            return 0;
+            return false;
         default:
             break;
     }
     
-    return 1;
+    return true;
 }
 
-int game_over(GameState* gs) {
+bool game_over(GameState* gs) {
     gs->lives -= 1;
     
     if (gs->lives >= 0) {
         load_level(gs);
         gs->scene = S_PLAYING;
-        return 1;
+        return true;
     }
 
-    return 0;
+    return false;
 }
