@@ -15,6 +15,7 @@ void add_wall(GameState* gs, int16_t x, int16_t y, uint8_t tile);
 void swap_sprites(GameState* gs, int16_t a, int16_t b);
 void move_pcs(GameState* gs, int8_t dx, int8_t dy);
 void post_update(GameState* gs);
+void render_bg(Backend* be);
 void render_sprites(GameState* gs, Backend* be);
 void limit_fps(GameState* gs);
 void decorate(Backend* be);
@@ -144,6 +145,7 @@ void add_sprite(GameState* gs, int16_t x, int16_t y, uint8_t id) {
 }
 
 void set_sprite_pos(GameState* gs, int16_t x, int16_t y, uint8_t id) {
+    assert(id < gs->n_sprites);
     Sprite* s = &gs->sprites[id];
     s->p = (Point) { x, y }; 
 }
@@ -158,6 +160,7 @@ void add_wall(GameState* gs, int16_t x, int16_t y, uint8_t tile) {
 }
 
 void swap_sprites(GameState* gs, int16_t id1, int16_t id2) {
+    assert(id1 != id2);
     Sprite* s1 = &gs->sprites[id1];
     Sprite* s2 = &gs->sprites[id2];
     Sprite copy = *s1; 
@@ -236,6 +239,14 @@ Adjacent find_adjacent(GameState* gs, Sprite* s1, Delta d) {
     }
     
     return adj;
+}
+
+void render_bg(Backend* be) {
+    for (int i = 0; i < MAP_W * MAP_H; i++) {
+        int16_t x = i % MAP_W * TILE_W + FRAME_W;
+        int16_t y = i / MAP_H * TILE_H + FRAME_W;
+        be_blit_tile(be, x, y, 20);
+    }
 }
 
 void render_sprites(GameState* gs, Backend* be) {
@@ -341,6 +352,7 @@ void render_help(GameState* gs, Backend* be) {
 }
 
 bool playing(GameState* gs, Backend* be) {
+    render_bg(be);
     render_sprites(gs, be);
     render_stats(gs, be);
     decorate(be);
