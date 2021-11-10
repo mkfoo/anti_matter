@@ -38,6 +38,10 @@ Point calc_tile(Point p, Delta d1) {
    return calc_point(p, d2);
 }
 
+bool has_flag(Sprite* self, Flag flag) {
+    return (self->flags & flag) == flag;
+}
+
 bool is_moving(Sprite* self) {
     return self->d.x != 0 || self->d.y != 0;
 }
@@ -48,6 +52,10 @@ bool is_aligned(Sprite* self) {
 
 bool point_equals(Point p1, Point p2) {
     return p1.x == p2.x && p1.y == p2.y;
+}
+
+bool is_overlapping(Sprite* self, Sprite* other) {
+    return self != other && point_equals(self->p, other->p);
 }
 
 bool num_between(int16_t self, int16_t a, int16_t b) {
@@ -71,28 +79,29 @@ bool point_between(Point self, Point p1, Point p2) {
 }
 
 bool can_move(Adjacent* a) {
-    return a->front == NULL 
-        || (a->front->flags & F_MOVABLE && a->next == NULL);
+    return !has_flag(a->front, F_EXISTS)
+        || (has_flag(a->front, F_MOVABLE) && !has_flag(a->next, F_EXISTS));
 }
 
 bool can_pull(Sprite* self, Sprite* other) {
-    return other != NULL 
-        && (other->flags & F_MOVABLE 
-        && (self->flags & F_POLARITY) ^ (other->flags & F_POLARITY)); 
+    return has_flag(other, F_EXISTS | F_MOVABLE) 
+        && has_flag(self, F_POLARITY) ^ has_flag(other, F_POLARITY); 
 }
 
-void move_sprite(Sprite* self, Delta d) {
-    if (self != NULL) {
-        self->d = d;
+void move_sprite(Sprite* self, Adjacent* a, Delta d) {
+    self->d = d;
+    push_sprite(a->front, d);
+
+    if (can_pull(self, a->back)) {
+        push_sprite(a->back, d);
     }
 }
 
 void push_sprite(Sprite* self, Delta d) {
-    if (self != NULL && !(self->flags & F_PLAYER_CHAR)) {
+    if (has_flag(self, F_EXISTS) && !has_flag(self, F_PLAYER_CHAR)) {
         self->d = d;
     }
 }
-
 
 void update_sprite(Sprite* self) {
     self->p = calc_point(self->p, self->d); 
@@ -100,6 +109,10 @@ void update_sprite(Sprite* self) {
     if (should_stop(self)) {
         self->d = (Delta) { 0, 0 };
     } 
+}
+
+void destroy_sprite(Sprite* self) {
+    *self = (Sprite) { { 0, 0 }, { 0, 0 }, 0, 0 };
 }
 
 bool should_stop(Sprite* self) {

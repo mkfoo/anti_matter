@@ -22,6 +22,8 @@ typedef struct {
     int32_t energy;
     int32_t lives;
     uint8_t n_sprites;
+    Adjacent adj_a;
+    Adjacent adj_m;
     Sprite sprites[MAX_SPRITES];
 } GameState;
 

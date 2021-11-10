@@ -3,14 +3,14 @@
 
 const Sprite PROTOTYPES[5] = {
     { .flags = 0, 0 },
-    { .flags = F_PLAYER_CHAR | F_ANIMATED, 1 },
-    { .flags = F_PLAYER_CHAR | F_ANIMATED | F_POLARITY, 5 },
-    { .flags = F_MOVABLE, 37 },
-    { .flags = F_MOVABLE | F_POLARITY, 38 },
+    { .flags = F_EXISTS | F_PLAYER_CHAR | F_ANIMATED | F_CRITICAL, 1 },
+    { .flags = F_EXISTS | F_PLAYER_CHAR | F_ANIMATED | F_CRITICAL | F_POLARITY , 5 },
+    { .flags = F_EXISTS | F_MOVABLE, 37 },
+    { .flags = F_EXISTS | F_MOVABLE | F_POLARITY, 38 },
 };
 
 typedef enum {
-    ID_NULL,
+    ID_NIL,
     ID_ANTI,
     ID_MATTER,
 } SpriteId;
