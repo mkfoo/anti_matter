@@ -8,9 +8,9 @@ OFLAGS = -O0
 
 LDFLAGS = -lm $(shell pkg-config --libs sdl2)
 
-OBJECTS = main.o gamestate.o sprite.o sdl_backend.o
+OBJECTS = main.o gamestate.o scene.o sprite.o sdl_backend.o
 
-HEADERS = antimatter.h backend.h gamestate.h level_data.h sprite.h
+HEADERS = antimatter.h backend.h gamestate.h level_data.h scene.h sprite.h
 
 $(PROGRAM) : $(OBJECTS)
 	$(CC) $(CFLAGS) $(OFLAGS) $(OBJECTS) $(LDFLAGS) -o $(PROGRAM)

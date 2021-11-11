@@ -30,8 +30,22 @@ GameState* gs_init(void);
 
 void gs_set_scene(GameState* gs, SceneFn* scene);
 
+void gs_load_level(GameState* gs);
+
 bool gs_update(GameState* gs, Backend* be);
 
+void gs_limit_fps(GameState* gs);
+
+void gs_move_pcs(GameState* gs, int8_t dx, int8_t dy);
+
+void gs_swap_sprites(GameState* gs);
+
+void gs_post_update(GameState* gs);
+
 void gs_render_default(GameState* gs, Backend* be);
+
+void gs_render_sprites(GameState* gs, Backend* be);
+
+void gs_render_help(GameState* gs, Backend* be);
 
 void gs_quit(GameState* gs);
