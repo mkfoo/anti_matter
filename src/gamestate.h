@@ -5,15 +5,14 @@
 #include "backend.h"
 #include "sprite.h"
 
-typedef enum {
-    S_PLAYING,
-    S_PAUSED,
-    S_GAME_OVER,
-} Scene;
+typedef struct GameState GameState;
 
-typedef struct {
-    Scene scene;
+typedef bool SceneFn(GameState* gs, Backend* be);
+
+struct GameState {
+    SceneFn* scene;
     float phase;
+    float speed;
     uint32_t prev;
     uint32_t lag;
     int32_t level;
@@ -25,10 +24,14 @@ typedef struct {
     Adjacent adj_a;
     Adjacent adj_m;
     Sprite sprites[MAX_SPRITES];
-} GameState;
+};
 
 GameState* gs_init(void);
 
+void gs_set_scene(GameState* gs, SceneFn* scene);
+
 bool gs_update(GameState* gs, Backend* be);
+
+void gs_render_default(GameState* gs, Backend* be);
 
 void gs_quit(GameState* gs);

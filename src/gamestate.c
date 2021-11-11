@@ -22,9 +22,11 @@ void limit_fps(GameState* gs);
 void decorate(Backend* be);
 void render_help(GameState* gs, Backend* be);
 void render_stats(GameState* gs, Backend* be);
-bool playing(GameState* gs, Backend* be);
-bool paused(GameState* gs, Backend* be);
-bool game_over(GameState* gs);
+bool sc_title(GameState* gs, Backend* be);
+bool sc_playing(GameState* gs, Backend* be);
+bool sc_paused(GameState* gs, Backend* be);
+bool sc_death1(GameState* gs, Backend* be);
+bool sc_game_over(GameState* gs, Backend* be);
 Adjacent find_adjacent(GameState* gs, Sprite* s, Delta d);
 
 
@@ -37,34 +39,39 @@ GameState* gs_init(void) {
 
     srand(time(NULL));
 
-    gs->scene = S_PLAYING;
     gs->phase = 0.0;
+    gs->speed = ANIM_SPEED_DEFAULT;
     gs->prev = be_get_millis();
     gs->lag = 0;
     gs->level = 0;
     gs->high = 10000;
     gs->score = 0;
     gs->energy = 1000;
-    gs->lives = 5; 
-    gs->n_sprites = 1;
-    load_level(gs);
+    gs->lives = 2; 
+
+    gs_set_scene(gs, sc_title); 
+    add_sprite(gs, 0, 0, ID_NIL);
 
     return gs;
 }
 
+void gs_set_scene(GameState* gs, SceneFn* scene) {
+    gs->phase = 0.0;
+    gs->speed = ANIM_SPEED_DEFAULT;
+    gs->scene = scene;
+}
+
 bool gs_update(GameState* gs, Backend* be) {
     advance(gs);
+    SceneFn* scene = gs->scene;
+    return scene(gs, be);
+}
 
-    switch (gs->scene) {
-        case S_PLAYING:
-            return playing(gs, be); 
-        case S_PAUSED:
-            return paused(gs, be); 
-        case S_GAME_OVER:
-            return game_over(gs);
-        default:
-            return false; 
-    }
+void gs_render_default(GameState* gs, Backend* be) {
+    render_stats(gs, be);
+    decorate(be);
+    limit_fps(gs);
+    be_present(be);
 }
 
 void gs_quit(GameState* gs) {
@@ -81,7 +88,7 @@ uint32_t get_lag(GameState* gs) {
 void advance(GameState* gs) {
     uint32_t lag = get_lag(gs);
     uint32_t ticks = lag / MS_PER_TICK;
-    adv_phase(gs, ANIM_SPEED, (float) ticks);
+    adv_phase(gs, gs->speed, (float) ticks);
     adv_movement(gs, ticks / MOVEMENT_SPEED);
     gs->lag = lag % MS_PER_TICK;
 }
@@ -217,7 +224,7 @@ void check_overlap(GameState* gs, Sprite* s1, Sprite* s2) {
             destroy_sprite(s1);
             destroy_sprite(s2);
         } else if (has_flag(s1, F_CRITICAL) || has_flag(s2, F_CRITICAL)) {
-            gs->scene = S_GAME_OVER;
+            gs_set_scene(gs, sc_death1);
         } else {
             s1->flags &= ~F_MOVABLE;
             s2->flags &= ~F_MOVABLE;
@@ -259,6 +266,8 @@ void render_sprites(GameState* gs, Backend* be) {
     int16_t bound_x = MAX_X - TILE_W;
     int16_t bound_y = MAX_Y - TILE_H;
     int16_t fw = FRAME_W;
+
+    render_bg(be);
 
     for (int i = 1; i < gs->n_sprites; i++) {
         Sprite* s = &gs->sprites[i];
@@ -363,14 +372,36 @@ void render_help(GameState* gs, Backend* be) {
     be_blit_text(be, x, y + m * 8, "F10       QUIT"); 
 }
 
-bool playing(GameState* gs, Backend* be) {
-    render_bg(be);
-    render_sprites(gs, be);
-    render_stats(gs, be);
-    decorate(be);
+bool sc_title(GameState* gs, Backend* be) {
+    gs->speed = ANIM_SPEED_SLOW;
     limit_fps(gs);
     be_present(be);
 
+    if (gs->phase > 0.25) {
+        be_blit_text(be, 72, 128, "PUSH SPACE KEY");
+    }
+
+    switch(be_get_event(be)) {
+        case KD_SPC:
+            gs->level = 0;
+            gs->lives = 2;
+            gs->score = 0;
+            load_level(gs);
+            gs_set_scene(gs, sc_playing);
+            break;
+        case KD_ESC:
+        case QUIT:
+            return false;
+        default:
+            break;
+    }
+    
+    return true;
+}
+
+bool sc_playing(GameState* gs, Backend* be) {
+    render_sprites(gs, be);
+    gs_render_default(gs, be);
     post_update(gs);
 
     switch(be_get_event(be)) {
@@ -390,7 +421,7 @@ bool playing(GameState* gs, Backend* be) {
             swap_sprites(gs, ID_ANTI, ID_MATTER);
             break;
         case KD_ESC:
-            gs->scene = S_PAUSED;
+            gs_set_scene(gs, sc_paused);
             break;
         case KD_F1:
         case QUIT:
@@ -402,17 +433,15 @@ bool playing(GameState* gs, Backend* be) {
     return true;
 }
 
-bool paused(GameState* gs, Backend* be) {
+bool sc_paused(GameState* gs, Backend* be) {
+    gs->speed = ANIM_SPEED_SLOW;
     render_help(gs, be);
-    render_stats(gs, be);
-    decorate(be);
-    limit_fps(gs);
-    be_present(be);
+    gs_render_default(gs, be);
 
     switch(be_get_event(be)) {
         case KD_SPC:
         case KD_ESC:
-            gs->scene = S_PLAYING;
+            gs_set_scene(gs, sc_playing);
             break;
         case KD_F1:
         case QUIT:
@@ -424,14 +453,29 @@ bool paused(GameState* gs, Backend* be) {
     return true;
 }
 
-bool game_over(GameState* gs) {
+bool sc_death1(GameState* gs, Backend* be) {
+    gs_render_default(gs, be);
     gs->lives -= 1;
     
-    if (gs->lives >= 0) {
+    if (gs->lives > 0) {
         load_level(gs);
-        gs->scene = S_PLAYING;
-        return true;
+        gs_set_scene(gs, sc_playing);
+    } else {
+        gs_set_scene(gs, sc_game_over);
     }
 
-    return false;
+    return true;
+}
+
+bool sc_game_over(GameState* gs, Backend* be) {
+    gs->speed = ANIM_SPEED_SLOW / 4.0;
+
+    if (gs->phase < 0.99) {
+        be_blit_text(be, 64, 92, "GAME OVER");
+        gs_render_default(gs, be);
+    } else {
+        gs_set_scene(gs, sc_title);
+    }
+
+    return true;
 }

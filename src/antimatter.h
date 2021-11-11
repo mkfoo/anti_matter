@@ -1,6 +1,7 @@
 #pragma once
 
-#define ANIM_SPEED 0.012
+#define ANIM_SPEED_DEFAULT 0.012
+#define ANIM_SPEED_SLOW 0.004
 #define CHARS_PER_ROW 20
 #define DECOR_TILE_BASE 60
 #define FONT_H 8
