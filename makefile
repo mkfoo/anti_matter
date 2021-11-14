@@ -2,7 +2,7 @@ PROGRAM = antimatter
 
 VPATH = src
 
-CFLAGS = -Werror -Wall -Wpedantic -Wextra -Wconversion -fanalyzer -std=c17 $(shell pkg-config --cflags sdl2)
+CFLAGS = -Werror -Wall -Wpedantic -Wextra -Wconversion -fwrapv -fanalyzer -std=c17 $(shell pkg-config --cflags sdl2)
 
 OFLAGS = -O0
 
