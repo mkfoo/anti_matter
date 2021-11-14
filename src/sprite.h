@@ -5,13 +5,13 @@
 #include "antimatter.h"
 
 typedef enum {
-    F_EXISTS = 1 << 0,
+    F_NIL = 1 << 0,
     F_PLAYER_CHAR = 1 << 1,
     F_MOVABLE = 1 << 2,
     F_ANIMATED = 1 << 3,
     F_POLARITY = 1 << 4,
     F_UNSTABLE = 1 << 5,
-    F_CRITICAL = 1 << 6,
+    F_DESTROY = 1 << 6,
 } Flag;
 
 typedef struct {
@@ -30,6 +30,12 @@ typedef struct {
     uint8_t flags;
     uint8_t tile;
 } Sprite;
+
+typedef enum {
+    ID_NIL,
+    ID_ANTI,
+    ID_MATTER,
+} SpriteId;
 
 typedef struct {
     Sprite* front;
@@ -58,6 +64,8 @@ bool point_equals(Point p1, Point p2);
 bool point_between(Point self, Point p1, Point p2);
 
 bool can_move(Adjacent* a); 
+
+bool can_move_both(Adjacent* a, Adjacent* b); 
 
 bool can_pull(Sprite* self, Sprite* other);
 

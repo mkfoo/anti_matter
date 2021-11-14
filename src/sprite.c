@@ -3,7 +3,12 @@
 #include "sprite.h"
 
 bool should_stop(Sprite* self);
+
 bool num_between(int16_t self, int16_t a, int16_t b);
+
+bool opp_polarity(Sprite* self, Sprite* other);
+
+bool is_identical(Sprite* self, Sprite* other);
 
 Delta get_delta(Sprite* self, Sprite* other) {
     int16_t x = other->p.x - self->p.x; 
@@ -55,7 +60,14 @@ bool point_equals(Point p1, Point p2) {
 }
 
 bool is_overlapping(Sprite* self, Sprite* other) {
-    return self != other && point_equals(self->p, other->p);
+    return self != other && 
+        ((!has_flag(self, F_NIL) && 
+            !has_flag(other, F_NIL)) && 
+                point_equals(self->p, other->p));
+}
+
+bool is_identical(Sprite* self, Sprite* other) {
+    return self == other && !has_flag(self, F_NIL);
 }
 
 bool num_between(int16_t self, int16_t a, int16_t b) {
@@ -78,14 +90,26 @@ bool point_between(Point self, Point p1, Point p2) {
     }
 }
 
+bool opp_polarity(Sprite* self, Sprite* other) {
+    return has_flag(self, F_POLARITY) ^ has_flag(other, F_POLARITY);
+}
+
 bool can_move(Adjacent* a) {
-    return !has_flag(a->front, F_EXISTS)
-        || (has_flag(a->front, F_MOVABLE) && !has_flag(a->next, F_EXISTS));
+    return has_flag(a->front, F_NIL) || 
+        (has_flag(a->front, F_MOVABLE) && 
+            (has_flag(a->next, F_NIL) || 
+                (has_flag(a->next, F_MOVABLE) && 
+                    opp_polarity(a->front, a->next))));
+}
+
+bool can_move_both(Adjacent* a, Adjacent* b) {
+    return (can_move(a) && can_move(b)) &&
+            (!is_identical(a->front, b->next) && 
+                !is_identical(a->next, b->front));
 }
 
 bool can_pull(Sprite* self, Sprite* other) {
-    return has_flag(other, F_EXISTS | F_MOVABLE) 
-        && has_flag(self, F_POLARITY) ^ has_flag(other, F_POLARITY); 
+    return has_flag(other, F_MOVABLE) && opp_polarity(self, other);
 }
 
 void move_sprite(Sprite* self, Adjacent* a, Delta d) {
@@ -98,7 +122,7 @@ void move_sprite(Sprite* self, Adjacent* a, Delta d) {
 }
 
 void push_sprite(Sprite* self, Delta d) {
-    if (has_flag(self, F_EXISTS) && !has_flag(self, F_PLAYER_CHAR)) {
+    if (!has_flag(self, F_NIL) && !has_flag(self, F_PLAYER_CHAR)) {
         self->d = d;
     }
 }
@@ -112,7 +136,12 @@ void update_sprite(Sprite* self) {
 }
 
 void destroy_sprite(Sprite* self) {
-    *self = (Sprite) { { 0, 0 }, { 0, 0 }, 0, 0 };
+    if (!has_flag(self, F_DESTROY)) {
+        self->flags |= F_DESTROY;
+        self->tile += 10;
+    } else {
+        *self = (Sprite) { { 0, 0 }, { 0, 0 }, F_NIL, 0 };
+    }
 }
 
 bool should_stop(Sprite* self) {

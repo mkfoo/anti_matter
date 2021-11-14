@@ -26,6 +26,8 @@ void decorate(Backend* be);
 
 void render_stats(GameState* gs, Backend* be);
 
+void remove_destroyed(GameState* gs);
+
 Adjacent find_adjacent(GameState* gs, Sprite* s, Delta d);
 
 GameState* gs_init(void) {
@@ -50,7 +52,7 @@ GameState* gs_init(void) {
 
 void gs_set_scene(GameState* gs, SceneFn* scene) {
     gs->phase = 0.0;
-    gs->speed = ANIM_SPEED_DEFAULT;
+    gs->speed = (float) ANIM_SPEED_DEFAULT;
     gs->scene = scene;
 }
 
@@ -96,11 +98,20 @@ bool gs_update(GameState* gs, Backend* be) {
 }
 
 void gs_post_update(GameState* gs) {
+    remove_destroyed(gs);
+
     Sprite* anti = &gs->sprites[ID_ANTI];
     Sprite* matter = &gs->sprites[ID_MATTER];
 
+    if (has_flag(anti, F_NIL) || has_flag(matter, F_NIL)) { 
+        gs_set_scene(gs, sc_death1);
+        return;
+    }
+
     check_overlap(gs, anti, matter);
     check_overlap(gs, gs->adj_a.front, gs->adj_m.front);
+    check_overlap(gs, gs->adj_a.front, gs->adj_a.next);
+    check_overlap(gs, gs->adj_m.front, gs->adj_m.next);
 
     if (is_aligned(anti) && is_aligned(matter)) {
         Delta d = get_delta(anti, matter);
@@ -138,7 +149,7 @@ void gs_move_pcs(GameState* gs, int8_t dx, int8_t dy) {
         gs->adj_a = find_adjacent(gs, anti, backward);
         gs->adj_m = find_adjacent(gs, matter, forward);
 
-        if (can_move(&gs->adj_a) && can_move(&gs->adj_m)) {
+        if (can_move_both(&gs->adj_a, &gs->adj_m)) {
             move_sprite(anti, &gs->adj_a, backward);
             move_sprite(matter, &gs->adj_m, forward);
         }
@@ -162,13 +173,13 @@ void gs_render_sprites(GameState* gs, Backend* be) {
     for (int i = 1; i < gs->n_sprites; i++) {
         Sprite* s = &gs->sprites[i];
 
-        if (has_flag(s, F_EXISTS)) {
+        if (!has_flag(s, F_NIL)) {
             int16_t x = s->p.x;
             int16_t y = s->p.y;
-            int16_t tile = s->tile;
+            uint8_t tile = s->tile;
+            uint8_t offset = gs->phase * 4.0;
 
             if (has_flag(s, F_ANIMATED)) {
-                int offset = gs->phase * 4.0;
                 tile += offset;
             } 
 
@@ -247,24 +258,29 @@ void add_wall(GameState* gs, int16_t x, int16_t y, uint8_t tile) {
     assert(gs->n_sprites < MAX_SPRITES);
     Sprite* s = &gs->sprites[gs->n_sprites];
     s->p = (Point) { x, y }; 
-    s->flags = F_EXISTS; 
+    s->flags = 0; 
     s->tile = tile; 
     gs->n_sprites++;
 }
 
 void check_overlap(GameState* gs, Sprite* s1, Sprite* s2) {
     if (is_overlapping(s1, s2)) {
-        if (has_flag(s1, F_UNSTABLE) || has_flag(s2, F_UNSTABLE)) {
-            destroy_sprite(s1);
-            destroy_sprite(s2);
-        } else if (has_flag(s1, F_CRITICAL) || has_flag(s2, F_CRITICAL)) {
-            gs_set_scene(gs, sc_death1);
-        } else {
-            s1->flags &= ~F_MOVABLE;
-            s2->flags &= ~F_MOVABLE;
+        destroy_sprite(s1);
+        destroy_sprite(s2);
+        gs_set_scene(gs, sc_wait);
+    }
+}
+
+void remove_destroyed(GameState* gs) {
+    for (int i = 3; i < gs->n_sprites; i++) {
+        Sprite* s = &gs->sprites[i];
+        
+        if (has_flag(s, F_DESTROY)) {
+            destroy_sprite(s);
         }
     }
 }
+
 
 Adjacent find_adjacent(GameState* gs, Sprite* s1, Delta d) {
     Point front = calc_tile(s1->p, d);
@@ -292,7 +308,7 @@ void render_bg(Backend* be) {
     for (int i = 0; i < MAP_W * MAP_H; i++) {
         int16_t x = i % MAP_W * TILE_W + FRAME_W;
         int16_t y = i / MAP_H * TILE_H + FRAME_W;
-        be_blit_tile(be, x, y, 20);
+        be_blit_tile(be, x, y, 10);
     }
 }
 
@@ -320,6 +336,16 @@ void decorate(Backend* be) {
         be_blit_tile(be, 176, y, t + 8);
         be_blit_tile(be, 240, y, t + 9);
     }
+
+    be_blit_tile(be, 200, 5, 52);
+    be_blit_tile(be, 216, 5, 53);
+    be_blit_tile(be, 232, 5, 54);
+    be_fill_rect(be, 243, 17, 5, 5, 1); 
+
+    be_blit_tile(be, 188, 171, 55);
+    be_blit_tile(be, 188 + 16, 171, 56);
+    be_blit_tile(be, 188 + 32, 171, 57);
+    be_blit_tile(be, 188 + 48, 171, 58);
 }
 
 void render_stats(GameState* gs, Backend* be) {

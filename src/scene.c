@@ -1,9 +1,18 @@
 #include "scene.h"
+#include "sprite.h"
 
 bool sc_title(GameState* gs, Backend* be) {
     gs->speed = ANIM_SPEED_SLOW;
     gs_limit_fps(gs);
     be_present(be);
+
+    int start_x = 64;
+    int y = 64;
+
+    for (int i = 0; i < 8; i++) {
+        int x = start_x + i * TILE_W;
+        be_blit_tile(be, x, y, 52 + i); 
+    }
 
     if (gs->phase > 0.25) {
         be_blit_text(be, 72, 128, "PUSH SPACE KEY");
@@ -12,7 +21,7 @@ bool sc_title(GameState* gs, Backend* be) {
     switch(be_get_event(be)) {
         case KD_SPC:
             gs->level = 0;
-            gs->lives = 2;
+            gs->lives = 4;
             gs->score = 0;
             gs_load_level(gs);
             gs_set_scene(gs, sc_playing);
@@ -81,15 +90,30 @@ bool sc_paused(GameState* gs, Backend* be) {
     return true;
 }
 
-bool sc_death1(GameState* gs, Backend* be) {
-    gs_render_default(gs, be);
-    gs->lives -= 1;
-    
-    if (gs->lives > 0) {
-        gs_load_level(gs);
-        gs_set_scene(gs, sc_playing);
+bool sc_wait(GameState* gs, Backend* be) {
+    if (gs->phase < 0.95) {
+        gs_render_sprites(gs, be);
+        gs_render_default(gs, be);
     } else {
-        gs_set_scene(gs, sc_game_over);
+        gs_set_scene(gs, sc_playing);
+    }
+
+    return true;
+}
+
+bool sc_death1(GameState* gs, Backend* be) {
+    if (gs->phase < 0.95) {
+        gs_render_sprites(gs, be);
+        gs_render_default(gs, be);
+    } else {
+        gs->lives -= 1;
+
+        if (gs->lives > 0) {
+            gs_load_level(gs);
+            gs_set_scene(gs, sc_playing);
+        } else {
+            gs_set_scene(gs, sc_game_over);
+        }
     }
 
     return true;
@@ -98,7 +122,7 @@ bool sc_death1(GameState* gs, Backend* be) {
 bool sc_game_over(GameState* gs, Backend* be) {
     gs->speed = ANIM_SPEED_SLOW / 4.0;
 
-    if (gs->phase < 0.99) {
+    if (gs->phase < 0.95) {
         be_blit_text(be, 64, 92, "GAME OVER");
         gs_render_default(gs, be);
     } else {
