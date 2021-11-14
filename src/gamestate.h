@@ -15,11 +15,11 @@ struct GameState {
     float speed;
     uint32_t prev;
     uint32_t lag;
-    int32_t level;
+    int16_t level;
     int32_t high;
     int32_t score;
     int32_t energy;
-    int32_t lives;
+    int16_t lives;
     uint8_t n_sprites;
     Adjacent adj_a;
     Adjacent adj_m;

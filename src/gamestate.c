@@ -177,10 +177,10 @@ void gs_render_sprites(GameState* gs, Backend* be) {
             int16_t x = s->p.x;
             int16_t y = s->p.y;
             uint8_t tile = s->tile;
-            uint8_t offset = gs->phase * 4.0;
+            float offset = gs->phase * 4.0f;
 
             if (has_flag(s, F_ANIMATED)) {
-                tile += offset;
+                tile += (uint8_t) offset;
             } 
 
             if (x > bound_x) {
@@ -306,9 +306,9 @@ Adjacent find_adjacent(GameState* gs, Sprite* s1, Delta d) {
 
 void render_bg(Backend* be) {
     for (int i = 0; i < MAP_W * MAP_H; i++) {
-        int16_t x = i % MAP_W * TILE_W + FRAME_W;
-        int16_t y = i / MAP_H * TILE_H + FRAME_W;
-        be_blit_tile(be, x, y, 10);
+        int x = i % MAP_W * TILE_W + FRAME_W;
+        int y = i / MAP_H * TILE_H + FRAME_W;
+        be_blit_tile(be, (int16_t) x, (int16_t) y, 33);
     }
 }
 

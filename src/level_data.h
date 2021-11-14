@@ -4,8 +4,8 @@
 const Sprite PROTOTYPES[5] = {
     { .flags = F_NIL, 0 },
     { .flags = F_PLAYER_CHAR | F_ANIMATED | F_UNSTABLE, 1 },
-    { .flags = F_PLAYER_CHAR | F_ANIMATED | F_UNSTABLE | F_POLARITY , 5 },
-    { .flags = F_MOVABLE | F_ANIMATED, 21 },
+    { .flags = F_PLAYER_CHAR | F_ANIMATED | F_UNSTABLE | F_POLARITY , 9 },
+    { .flags = F_MOVABLE | F_ANIMATED, 17 },
     { .flags = F_MOVABLE | F_ANIMATED | F_POLARITY, 25 },
 };
 

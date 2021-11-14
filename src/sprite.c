@@ -13,15 +13,15 @@ bool is_identical(Sprite* self, Sprite* other);
 Delta get_delta(Sprite* self, Sprite* other) {
     int16_t x = other->p.x - self->p.x; 
     int16_t y = other->p.y - self->p.y; 
-    int16_t dx = 0;
-    int16_t dy = 0;
+    int8_t dx = 0;
+    int8_t dy = 0;
 
     if (x != 0) {
-        dx = x / abs(x);
+        dx = (int8_t) (x / abs(x));
     }
 
     if (y != 0) {
-        dy = y / abs(y);
+        dy = (int8_t) (y / abs(y));
     }
 
     return (Delta) { dx, dy };
@@ -33,8 +33,8 @@ Delta invert_delta(Delta d) {
 
 Point calc_point(Point p, Delta d) {
     return (Point) {
-        (MAX_X + (p.x + d.x) % MAX_X) % MAX_X,
-        (MAX_Y + (p.y + d.y) % MAX_Y) % MAX_Y,
+        (int16_t) (MAX_X + (p.x + d.x) % MAX_X) % MAX_X,
+        (int16_t) (MAX_Y + (p.y + d.y) % MAX_Y) % MAX_Y,
     };
 }
 
@@ -138,7 +138,8 @@ void update_sprite(Sprite* self) {
 void destroy_sprite(Sprite* self) {
     if (!has_flag(self, F_DESTROY)) {
         self->flags |= F_DESTROY;
-        self->tile += 10;
+        self->d = (Delta) { 0, 0 };
+        self->tile += 4;
     } else {
         *self = (Sprite) { { 0, 0 }, { 0, 0 }, F_NIL, 0 };
     }
