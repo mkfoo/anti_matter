@@ -20,6 +20,7 @@ struct GameState {
     int32_t score;
     int32_t energy;
     int16_t lives;
+    int16_t to_clear;
     uint8_t n_sprites;
     Adjacent adj_a;
     Adjacent adj_m;
@@ -34,6 +35,10 @@ void gs_load_level(GameState* gs);
 
 bool gs_update(GameState* gs, Backend* be);
 
+uint32_t gs_adv_clock(GameState* gs);
+
+void gs_adv_state(GameState* gs, uint32_t ticks);
+
 void gs_limit_fps(GameState* gs);
 
 void gs_move_pcs(GameState* gs, int8_t dx, int8_t dy);
@@ -41,6 +46,8 @@ void gs_move_pcs(GameState* gs, int8_t dx, int8_t dy);
 void gs_swap_sprites(GameState* gs);
 
 void gs_post_update(GameState* gs);
+
+void gs_score(GameState* gs, int32_t n);
 
 void gs_render_default(GameState* gs, Backend* be);
 
