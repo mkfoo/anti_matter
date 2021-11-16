@@ -105,7 +105,9 @@ bool can_move(Adjacent* a) {
 bool can_move_both(Adjacent* a, Adjacent* b) {
     return (can_move(a) && can_move(b)) &&
             (!is_identical(a->front, b->next) && 
-                !is_identical(a->next, b->front));
+                !is_identical(a->next, b->front)) &&
+                    (!point_equals(a->next_p, b->next_p) || 
+                        opp_polarity(a->front, b->front));
 }
 
 bool can_pull(Sprite* self, Sprite* other) {

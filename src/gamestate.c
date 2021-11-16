@@ -57,12 +57,12 @@ void gs_set_scene(GameState* gs, SceneFn* scene) {
 }
 
 void gs_load_level(GameState* gs) {
-    gs->energy = 2000;
+    gs->energy = 1000;
     gs->n_sprites = 1;
     gs->to_clear = 0;
     Sprite* nil = &gs->sprites[ID_NIL];
-    gs->adj_a = (Adjacent) { nil, nil, nil };
-    gs->adj_m = (Adjacent) { nil, nil, nil };
+    gs->adj_a = (Adjacent) { nil, nil, nil, { 0, 0 } };
+    gs->adj_m = (Adjacent) { nil, nil, nil, { -1, -1 } };
     add_sprite(gs, 160, 160, ID_ANTI);
     add_sprite(gs, 0, 0, ID_MATTER);
 
@@ -325,7 +325,7 @@ Adjacent find_adjacent(GameState* gs, Sprite* s1, Delta d) {
     Point back = calc_tile(s1->p, invert_delta(d));
     Point next = calc_tile(front, d);
     Sprite* nil = &gs->sprites[ID_NIL];
-    Adjacent adj = { nil, nil, nil };
+    Adjacent adj = { nil, nil, nil, next };
 
     for (int i = 1; i < gs->n_sprites; i++) {
         Sprite* s2 = &gs->sprites[i];

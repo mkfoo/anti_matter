@@ -43,6 +43,7 @@ typedef struct {
     Sprite* front;
     Sprite* back;
     Sprite* next;
+    Point next_p;
 } Adjacent;
 
 Delta get_delta(Sprite* self, Sprite* other);
