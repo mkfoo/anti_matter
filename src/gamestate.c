@@ -57,9 +57,9 @@ void gs_set_scene(GameState* gs, SceneFn* scene) {
 }
 
 void gs_load_level(GameState* gs) {
-    gs->energy = 1000;
     gs->n_sprites = 1;
     gs->to_clear = 0;
+    gs->energy = LEVEL_ENERGY[gs->level];
     Sprite* nil = &gs->sprites[ID_NIL];
     gs->adj_a = (Adjacent) { nil, nil, nil, { 0, 0 } };
     gs->adj_m = (Adjacent) { nil, nil, nil, { -1, -1 } };
@@ -112,16 +112,18 @@ uint32_t gs_adv_clock(GameState* gs) {
 }
 
 void gs_adv_state(GameState* gs, uint32_t ticks) {
-    int32_t nrg = (int32_t) ticks / ENERGY_LOSS;
-    uint32_t move = ticks / MOVEMENT_SPEED;
-    gs->energy -= nrg;
+    uint32_t moves = ticks / MOVEMENT_SPEED;
 
-    for (uint8_t i = 1; i < gs->n_sprites; i++) {
+    for (size_t i = 1; i < gs->n_sprites; i++) {
         Sprite* s = &gs->sprites[i];
 
-        for (uint32_t t = 0; t < move; t++) {
-            if (is_moving(s)) { 
+        for (size_t t = 0; t < moves; t++) {
+            if (is_moving(s)) {
                 update_sprite(s);
+
+                if (has_flag(s, F_PLAYER_CHAR)) { 
+                    gs->energy -= ENERGY_LOSS;
+                }
             }
         }
     }
