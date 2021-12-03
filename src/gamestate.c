@@ -4,10 +4,6 @@
 #include "level_data.h"
 #include "scene.h"
 
-uint32_t get_lag(GameState* gs);
-
-void adv_phase(GameState* gs, float speed, float ticks); 
-
 void add_sprite(GameState* gs, int16_t x, int16_t y, uint8_t id);
 
 void set_sprite_pos(GameState* gs, int16_t x, int16_t y, uint8_t id);
@@ -17,8 +13,6 @@ void add_wall(GameState* gs, int16_t x, int16_t y, uint8_t tile);
 void check_overlap(GameState* gs, Sprite* s1, Sprite* s2);
 
 bool check_los(GameState* gs, Sprite* s1, Sprite* s2);
-
-void render_bg(Backend* be);
 
 void decorate(Backend* be);
 
@@ -38,11 +32,8 @@ GameState* gs_init(void) {
     }
 
     gs_set_scene(gs, sc_title); 
-    gs->prev = be_get_millis();
-    gs->lag = 0;
-    gs->level = 0;
+    gs->t.prev = be_get_millis();
     gs->high = 10000;
-    gs->score = 0;
     gs->energy = 1000;
     gs->lives = 4; 
     add_sprite(gs, 0, 0, ID_NIL);
@@ -51,8 +42,7 @@ GameState* gs_init(void) {
 }
 
 void gs_set_scene(GameState* gs, SceneFn* scene) {
-    gs->phase = 0.0;
-    gs->speed = (float) ANIM_SPEED_DEFAULT;
+    gs->t.phase = 0.0;
     gs->scene = scene;
 }
 
@@ -99,20 +89,13 @@ void gs_load_level(GameState* gs) {
 }
 
 bool gs_update(GameState* gs, Backend* be) {
+    t_advance(&gs->t);
     SceneFn* scene = gs->scene;
     return scene(gs, be);
 }
 
-uint32_t gs_adv_clock(GameState* gs) {
-    uint32_t lag = get_lag(gs);
-    uint32_t ticks = lag / MS_PER_TICK;
-    adv_phase(gs, gs->speed, (float) ticks);
-    gs->lag = lag % MS_PER_TICK;
-    return ticks;
-}
-
-void gs_adv_state(GameState* gs, uint32_t ticks) {
-    uint32_t moves = ticks / MOVEMENT_SPEED;
+void gs_adv_state(GameState* gs) {
+    uint32_t moves = gs->t.ticks / MOVEMENT_SPEED;
 
     for (size_t i = 1; i < gs->n_sprites; i++) {
         Sprite* s = &gs->sprites[i];
@@ -121,8 +104,8 @@ void gs_adv_state(GameState* gs, uint32_t ticks) {
             if (is_moving(s)) {
                 update_sprite(s);
 
-                if (has_flag(s, F_PLAYER_CHAR)) { 
-                    gs->energy -= ENERGY_LOSS;
+                if (has_flag(s, F_PLAYER_CHAR | F_POLARITY)) { 
+                    gs->energy -= 1;
                 }
             }
         }
@@ -185,7 +168,7 @@ void gs_move_pcs(GameState* gs, int8_t dx, int8_t dy) {
 void gs_render_default(GameState* gs, Backend* be) {
     render_stats(gs, be);
     decorate(be);
-    gs_limit_fps(gs);
+    t_limit_fps(&gs->t);
     be_present(be);
 }
 
@@ -194,8 +177,6 @@ void gs_render_sprites(GameState* gs, Backend* be) {
     int16_t bound_y = MAX_Y - TILE_H;
     int16_t fw = FRAME_W;
 
-    render_bg(be);
-
     for (int i = 1; i < gs->n_sprites; i++) {
         Sprite* s = &gs->sprites[i];
 
@@ -203,10 +184,10 @@ void gs_render_sprites(GameState* gs, Backend* be) {
             int16_t x = s->p.x;
             int16_t y = s->p.y;
             uint8_t tile = s->tile;
-            float offset = gs->phase * 4.0f;
+            float offset = gs->t.phase * 8.0f;
 
             if (has_flag(s, F_ANIMATED)) {
-                tile += (uint8_t) offset;
+                tile += (uint8_t) offset % 4;
             } 
 
             if (x > bound_x) {
@@ -222,15 +203,6 @@ void gs_render_sprites(GameState* gs, Backend* be) {
     }
 }
 
-void gs_limit_fps(GameState* gs) {
-    uint32_t next = gs->prev + MS_PER_FRAME;
-    uint32_t now = be_get_millis();
-
-    if (next > now) {
-        be_delay(next - now);
-    }
-}
-
 void gs_quit(GameState* gs) {
     free(gs);
 }
@@ -241,17 +213,6 @@ void gs_score(GameState* gs, int32_t num) {
     if (gs->score > gs->high) {
         gs->high = gs->score;
     }
-}
-
-uint32_t get_lag(GameState* gs) {
-    uint32_t curr = be_get_millis();
-    uint32_t lag = curr - gs->prev + gs->lag;
-    gs->prev = curr;
-    return lag;
-}
-
-void adv_phase(GameState* gs, float speed, float ticks) {
-    gs->phase = fmodf(gs->phase + speed * ticks, 1.0);
 }
 
 void add_sprite(GameState* gs, int16_t x, int16_t y, uint8_t id) {
@@ -283,7 +244,7 @@ void check_overlap(GameState* gs, Sprite* s1, Sprite* s2) {
             gs_set_scene(gs, sc_death1);
         } else {
             gs->to_clear -= 2;
-            gs_score(gs, 100);
+            gs_score(gs, 160);
             gs_set_scene(gs, sc_wait);
         }
 
@@ -342,14 +303,6 @@ Adjacent find_adjacent(GameState* gs, Sprite* s1, Delta d) {
     }
     
     return adj;
-}
-
-void render_bg(Backend* be) {
-    for (int i = 0; i < MAP_W * MAP_H; i++) {
-        int x = i % MAP_W * TILE_W + FRAME_W;
-        int y = i / MAP_H * TILE_H + FRAME_W;
-        be_blit_tile(be, (int16_t) x, (int16_t) y, 89);
-    }
 }
 
 void decorate(Backend* be) {
@@ -415,7 +368,7 @@ void gs_render_help(GameState* gs, Backend* be) {
     int y = 28;
     int m = 16;
     
-    if (gs->phase > 0.25) {
+    if (gs->t.phase > 0.25) {
         be_blit_text(be, x + 31, y, "PAUSED");
     }
 
