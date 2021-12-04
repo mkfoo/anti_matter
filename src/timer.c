@@ -12,8 +12,21 @@ void t_advance(Timer* self) {
     self->ticks = ticks;
 }
 
+void t_set_delay(Timer* self, uint32_t delay) {
+    self->start = self->prev;
+    self->delay = delay * 1000;
+}
+
 float t_get_phase(Timer* self) {
-    return self->phase;
+    if (self->delay == 0) {
+        return self->phase;
+    }
+
+    if (self->prev < (self->start + self->delay)) {
+        return (float) (self->prev - self->start) / (float) self->delay;
+    }
+
+    return 1.0f;
 }
 
 void t_limit_fps(Timer* self) {

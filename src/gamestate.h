@@ -29,7 +29,7 @@ GameState* gs_init(void);
 
 bool gs_update(GameState* gs, Backend* be);
 
-void gs_set_scene(GameState* gs, SceneFn* scene);
+void gs_set_scene(GameState* gs, SceneFn* scene, uint32_t delay);
 
 void gs_load_level(GameState* gs);
 

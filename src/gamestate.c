@@ -31,7 +31,7 @@ GameState* gs_init(void) {
         return NULL;
     }
 
-    gs_set_scene(gs, sc_title); 
+    gs_set_scene(gs, sc_title, 0); 
     gs->t.prev = be_get_millis();
     gs->high = 10000;
     gs->energy = 1000;
@@ -41,8 +41,8 @@ GameState* gs_init(void) {
     return gs;
 }
 
-void gs_set_scene(GameState* gs, SceneFn* scene) {
-    gs->t.phase = 0.0;
+void gs_set_scene(GameState* gs, SceneFn* scene, uint32_t delay) {
+    t_set_delay(&gs->t, delay);
     gs->scene = scene;
 }
 
@@ -68,10 +68,8 @@ void gs_load_level(GameState* gs) {
             case ID_NIL:
                 continue;
             case ID_ANTI:
-                set_sprite_pos(gs, x, y, ID_ANTI);
-                break;
             case ID_MATTER:
-                set_sprite_pos(gs, x, y, ID_MATTER);
+                set_sprite_pos(gs, x, y, id);
                 break;
             case ID_BLOB_B:
             case ID_BLOB_R:
@@ -121,7 +119,7 @@ void gs_post_update(GameState* gs) {
     if (gs->energy < 1) { 
         destroy_sprite(anti);
         destroy_sprite(matter);
-        gs_set_scene(gs, sc_death1);
+        gs_set_scene(gs, sc_death1, 0);
         return;
     } 
 
@@ -129,7 +127,7 @@ void gs_post_update(GameState* gs) {
         bool los = check_los(gs, anti, matter);
 
         if (gs->to_clear <= 0 && !los) {
-            gs_set_scene(gs, sc_level_clear);
+            gs_set_scene(gs, sc_level_clear, 0);
             return;
         }
     }
@@ -241,11 +239,11 @@ void add_wall(GameState* gs, int16_t x, int16_t y, uint8_t tile) {
 void check_overlap(GameState* gs, Sprite* s1, Sprite* s2) {
     if (is_overlapping(s1, s2)) {
         if (has_flag(s1, F_PLAYER_CHAR) || has_flag(s2, F_PLAYER_CHAR)) {
-            gs_set_scene(gs, sc_death1);
+            gs_set_scene(gs, sc_death1, 0);
         } else {
             gs->to_clear -= 2;
             gs_score(gs, 160);
-            gs_set_scene(gs, sc_wait);
+            gs_set_scene(gs, sc_wait, 0);
         }
 
         destroy_sprite(s1);
