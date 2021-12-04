@@ -31,14 +31,19 @@ GameState* gs_init(void) {
         return NULL;
     }
 
-    gs_set_scene(gs, sc_title, 0); 
     gs->t.prev = be_get_millis();
     gs->high = 10000;
-    gs->energy = 1000;
-    gs->lives = 4; 
+    gs_set_scene(gs, sc_splash, 5); 
     add_sprite(gs, 0, 0, ID_NIL);
-
     return gs;
+}
+
+bool gs_update(GameState* gs, Backend* be) {
+    t_limit_fps(&gs->t);
+    be_present(be);
+    t_advance(&gs->t);
+    SceneFn* scene = gs->scene;
+    return scene(gs, be);
 }
 
 void gs_set_scene(GameState* gs, SceneFn* scene, uint32_t delay) {
@@ -84,12 +89,6 @@ void gs_load_level(GameState* gs) {
                 }
         }
     }
-}
-
-bool gs_update(GameState* gs, Backend* be) {
-    t_advance(&gs->t);
-    SceneFn* scene = gs->scene;
-    return scene(gs, be);
 }
 
 void gs_adv_state(GameState* gs) {
@@ -166,8 +165,6 @@ void gs_move_pcs(GameState* gs, int8_t dx, int8_t dy) {
 void gs_render_default(GameState* gs, Backend* be) {
     render_stats(gs, be);
     decorate(be);
-    t_limit_fps(&gs->t);
-    be_present(be);
 }
 
 void gs_render_sprites(GameState* gs, Backend* be) {

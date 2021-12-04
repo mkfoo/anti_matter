@@ -2,21 +2,52 @@
 #include "sprite.h"
 #include "timer.h"
 
-bool sc_title(GameState* gs, Backend* be) {
-    int start_x = 64;
-    int y = 64;
+void render_title(Backend* be, int x0, int y);
 
+void render_title(Backend* be, int x0, int y) {
     for (int i = 0; i < 8; i++) {
-        int x = start_x + i * TILE_W;
+        int x = x0 + i * TILE_W;
         be_blit_tile(be, x, y, 62 + i); 
     }
+}
+
+bool sc_splash(GameState* gs, Backend* be) {
+    float phase = t_get_phase(&gs->t);
+
+    if (phase < 0.8f) {
+        be_fill_rect(be, 0, 0, WINDOW_W, WINDOW_H, 5); 
+    } else if (phase == 1.0f) {
+        gs_set_scene(gs, sc_title_anim, 2);
+    }
+
+    return true;
+}
+
+bool sc_title_anim(GameState* gs, Backend* be) {
+    float phase = t_get_phase(&gs->t);
+    int x0 = 64;
+    int y0 = 64;
+
+    for (int i = 0; i < 8; i++) {
+        float x = (float) i * 8.0f * (1.0f - phase);
+        float y = (float) i * 16.0f * (1.0f - phase);
+        render_title(be, x0 + (int) x, y0 - (int) y);
+        render_title(be, x0 - (int) x, y0 + (int) y);
+    }
+
+    if (phase == 1.0f) {
+        gs_set_scene(gs, sc_title, 0);
+    }
+
+    return true;
+}
+
+bool sc_title(GameState* gs, Backend* be) {
+    render_title(be, 64, 64);
 
     if (t_get_phase(&gs->t) > 0.25) {
         be_blit_text(be, 72, 128, "PUSH SPACE KEY");
     }
-
-    t_limit_fps(&gs->t);
-    be_present(be);
 
     switch(be_get_event(be)) {
         case KD_SPC:
@@ -154,7 +185,7 @@ bool sc_game_over(GameState* gs, Backend* be) {
     gs_render_default(gs, be);
 
     if (t_get_phase(&gs->t) == 1.0f) {
-        gs_set_scene(gs, sc_title, 0);
+        gs_set_scene(gs, sc_title_anim, 2);
     }
 
     return true;
