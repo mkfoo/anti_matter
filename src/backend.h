@@ -37,6 +37,8 @@ void be_blit_text(Backend* be, int x, int y, char* str);
 
 void be_fill_rect(Backend* be, int x, int y, int w, int h, int color);
 
+void be_draw_line(Backend* be, int x1, int y1, int x2, int y2, int color);
+
 uint32_t be_get_millis(void);
 
 void be_delay(uint32_t dur);

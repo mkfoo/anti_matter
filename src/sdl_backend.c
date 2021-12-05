@@ -193,6 +193,12 @@ void be_fill_rect(Backend* be, int x, int y, int w, int h, int color) {
     SDL_RenderFillRect(be->ren, &dst);
 }
 
+void be_draw_line(Backend* be, int x1, int y1, int x2, int y2, int color) {
+    SDL_Color c = COLORS[color]; 
+    SDL_SetRenderDrawColor(be->ren, c.r, c.g, c.b, c.a);
+    SDL_RenderDrawLine(be->ren, x1, y1, x2, y2);
+}
+
 void be_toggle_fullscreen(Backend* be) {
     if (SDL_GetWindowFlags(be->win) & SDL_WINDOW_FULLSCREEN) {
         SDL_SetWindowDisplayMode(be->win, NULL);

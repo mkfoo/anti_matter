@@ -55,7 +55,7 @@ bool sc_title(GameState* gs, Backend* be) {
             gs->lives = 4;
             gs->score = 0;
             gs_load_level(gs);
-            gs_set_scene(gs, sc_start_level, 0);
+            gs_set_scene(gs, sc_start_level, 2);
             break;
         case KD_ESC:
         case QUIT:
@@ -69,9 +69,19 @@ bool sc_title(GameState* gs, Backend* be) {
 
 bool sc_start_level(GameState* gs, Backend* be) {
     gs_render_sprites(gs, be);
+    float phase = t_get_phase(&gs->t);
+    int m = (int) (192.0f / powf(2, phase * 7.0f));
+
+    for (int i = 0; i < WINDOW_H; i++) {
+        if (i % m != 0) {
+            be_draw_line(be, 0, i, 192, i, 1);
+            be_draw_line(be, i, 0, i, 192, 1);
+        }
+    }
+
     gs_render_default(gs, be);
 
-    if (t_get_phase(&gs->t) > 0.95) {
+    if (phase == 1.0f) {
         gs_set_scene(gs, sc_playing, 0);
     } 
 
@@ -171,7 +181,7 @@ bool sc_death1(GameState* gs, Backend* be) {
 
         if (gs->lives > 0) {
             gs_load_level(gs);
-            gs_set_scene(gs, sc_start_level, 0);
+            gs_set_scene(gs, sc_start_level, 2);
         } else {
             gs_set_scene(gs, sc_game_over, 5);
         }
