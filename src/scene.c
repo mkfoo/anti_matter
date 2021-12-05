@@ -4,10 +4,36 @@
 
 void render_title(Backend* be, int x0, int y);
 
+void fade_effect(Backend* be, float phase, int color); 
+
+void lose_life(GameState* gs); 
+
 void render_title(Backend* be, int x0, int y) {
     for (int i = 0; i < 8; i++) {
         int x = x0 + i * TILE_W;
         be_blit_tile(be, x, y, 62 + i); 
+    }
+}
+
+void fade_effect(Backend* be, float phase, int color) {
+    int m = (int) (192.0f / powf(2, phase * 7.0f));
+
+    for (int i = 8; i < 184; i++) {
+        if (i % m != 0) {
+            be_draw_line(be, 8, i, 184, i, color);
+            be_draw_line(be, i, 8, i, 184, color);
+        }
+    }
+}
+
+void lose_life(GameState* gs) {
+    gs->lives -= 1;
+
+    if (gs->lives > 0) {
+        gs_load_level(gs);
+        gs_set_scene(gs, sc_start_level, 2);
+    } else {
+        gs_set_scene(gs, sc_game_over, 5);
     }
 }
 
@@ -70,15 +96,7 @@ bool sc_title(GameState* gs, Backend* be) {
 bool sc_start_level(GameState* gs, Backend* be) {
     gs_render_sprites(gs, be);
     float phase = t_get_phase(&gs->t);
-    int m = (int) (192.0f / powf(2, phase * 7.0f));
-
-    for (int i = 0; i < WINDOW_H; i++) {
-        if (i % m != 0) {
-            be_draw_line(be, 0, i, 192, i, 1);
-            be_draw_line(be, i, 0, i, 192, 1);
-        }
-    }
-
+    fade_effect(be, phase, 1);
     gs_render_default(gs, be);
 
     if (phase == 1.0f) {
@@ -114,7 +132,7 @@ bool sc_playing(GameState* gs, Backend* be) {
             gs_set_scene(gs, sc_paused, 0);
             break;
         case KD_F1:
-            gs_set_scene(gs, sc_death1, 0);
+            gs->energy = 0;
             break;
         case QUIT:
             return false;
@@ -148,7 +166,7 @@ bool sc_wait(GameState* gs, Backend* be) {
     gs_render_sprites(gs, be);
     gs_render_default(gs, be);
 
-    if (t_get_phase(&gs->t) > 0.95) {
+    if (t_get_phase(&gs->t) == 1.0f) {
         gs_set_scene(gs, sc_playing, 0);
     } 
 
@@ -158,7 +176,7 @@ bool sc_wait(GameState* gs, Backend* be) {
 bool sc_level_clear(GameState* gs, Backend* be) {
     gs_render_sprites(gs, be);
     gs_render_default(gs, be);
-    gs->energy -= 7;
+    gs->energy -= 8;
 
     if (gs->energy > 0) {
         gs_score(gs, 1);
@@ -166,7 +184,7 @@ bool sc_level_clear(GameState* gs, Backend* be) {
         gs->energy = 0;
         gs->level = (int16_t) (gs->level + 1) % MAX_LEVEL;
         gs_load_level(gs);
-        gs_set_scene(gs, sc_start_level, 0);
+        gs_set_scene(gs, sc_start_level, 2);
     }
 
     return true;
@@ -176,15 +194,28 @@ bool sc_death1(GameState* gs, Backend* be) {
     gs_render_sprites(gs, be);
     gs_render_default(gs, be);
 
-    if (t_get_phase(&gs->t) > 0.95) {
-        gs->lives -= 1;
+    if (t_get_phase(&gs->t) == 1.0f) {
+        lose_life(gs);
+    }
 
-        if (gs->lives > 0) {
-            gs_load_level(gs);
-            gs_set_scene(gs, sc_start_level, 2);
-        } else {
-            gs_set_scene(gs, sc_game_over, 5);
-        }
+    return true;
+}
+
+bool sc_death2(GameState* gs, Backend* be) {
+    float phase = t_get_phase(&gs->t);
+    int color = 15;
+
+    if (((int) (phase * 41.0f)) % 2 == 0) {
+        color = 14;
+    }
+
+    be_fill_rect(be, 0, 0, WINDOW_W, WINDOW_H, color); 
+    gs_render_sprites(gs, be);
+    fade_effect(be, (1.0f - phase), color);
+    gs_render_default(gs, be);
+
+    if (phase == 1.0f) {
+        lose_life(gs);
     }
 
     return true;

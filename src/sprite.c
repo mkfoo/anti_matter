@@ -73,7 +73,9 @@ bool is_identical(Sprite* self, Sprite* other) {
 bool num_between(int16_t self, int16_t a, int16_t b) {
     if (a < b) {
         return self > a && self < b;
-    } else if (b < a) {
+    } 
+
+    if (b < a) {
         return self > b && self < a;
     }
 
@@ -83,11 +85,13 @@ bool num_between(int16_t self, int16_t a, int16_t b) {
 bool point_between(Point self, Point p1, Point p2) {
     if (self.x == p1.x && p1.x == p2.x) {
         return num_between(self.y, p1.y, p2.y);
-    } else if (self.y == p1.y && p1.y == p2.y) {
+    } 
+
+    if (self.y == p1.y && p1.y == p2.y) {
         return num_between(self.x, p1.x, p2.x);
-    } else {
-        return false;
-    }
+    } 
+        
+    return false;
 }
 
 bool opp_polarity(Sprite* self, Sprite* other) {

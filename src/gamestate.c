@@ -118,7 +118,7 @@ void gs_post_update(GameState* gs) {
     if (gs->energy < 1) { 
         destroy_sprite(anti);
         destroy_sprite(matter);
-        gs_set_scene(gs, sc_death1, 0);
+        gs_set_scene(gs, sc_death1, 2);
         return;
     } 
 
@@ -235,16 +235,17 @@ void add_wall(GameState* gs, int16_t x, int16_t y, uint8_t tile) {
 
 void check_overlap(GameState* gs, Sprite* s1, Sprite* s2) {
     if (is_overlapping(s1, s2)) {
-        if (has_flag(s1, F_PLAYER_CHAR) || has_flag(s2, F_PLAYER_CHAR)) {
-            gs_set_scene(gs, sc_death1, 0);
+        if (has_flag(s1, F_UNSTABLE) || has_flag(s2, F_UNSTABLE)) {
+            s1->tile = 41;
+            s2->tile = 41;
+            gs_set_scene(gs, sc_death2, 2);
         } else {
             gs->to_clear -= 2;
             gs_score(gs, 160);
-            gs_set_scene(gs, sc_wait, 0);
+            gs_set_scene(gs, sc_wait, 1);
+            destroy_sprite(s1);
+            destroy_sprite(s2);
         }
-
-        destroy_sprite(s1);
-        destroy_sprite(s2);
     }
 }
 
