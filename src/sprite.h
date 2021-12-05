@@ -37,6 +37,8 @@ typedef enum {
     ID_MATTER,
     ID_BLOB_B,
     ID_BLOB_R,
+    ID_BOMB_B,
+    ID_BOMB_R,
 } SpriteId;
 
 typedef struct {
