@@ -1,5 +1,11 @@
 #include "backend.h"
 
+Event be_get_keydown(Backend* be, SDL_Keycode key);
+Event be_get_keyup(SDL_Keycode key);
+void be_toggle_fullscreen(Backend* be);
+void be_toggle_scale(Backend* be);
+void log_error(void);
+
 const SDL_Color COLORS[16] = {
     {0x00, 0x00, 0x00, 0x00}, // TRANSPARENT
     {0x00, 0x00, 0x00, 0xff}, // BLACK
@@ -19,13 +25,19 @@ const SDL_Color COLORS[16] = {
     {0xff, 0xff, 0xff, 0xff}, // WHITE
 };
 
-Event be_get_keydown(Backend* be, SDL_Keycode key);
-Event be_get_keyup(SDL_Keycode key);
-void be_toggle_fullscreen(Backend* be);
-void be_toggle_scale(Backend* be);
-void log_error(void);
+const SDL_AudioSpec SPEC_WANTED = {
+    .freq = 44100,
+    .format = AUDIO_S16SYS,
+    .channels = 1,
+    .silence = 0,
+    .samples = 4096,
+    .size = 0,
+    .callback = NULL,
+    .userdata = NULL,
+};
 
 Backend* be_init(void) {
+    static SDL_AudioSpec spec_received = { 0 };
     int err = 0;
 
     Backend* be = SDL_malloc(sizeof(Backend));
@@ -82,6 +94,15 @@ Backend* be_init(void) {
         return NULL;
     }
 
+    be->dev = SDL_OpenAudioDevice(NULL, 0, &SPEC_WANTED, &spec_received, 0);
+
+    if (be->dev == 0) {
+        log_error(); 
+        return NULL;
+    }
+
+    SDL_PauseAudioDevice(be->dev, 0);
+
     SDL_FreeSurface(surf);
     be_toggle_scale(be);
     return be;
@@ -91,6 +112,7 @@ void be_quit(Backend* be) {
     SDL_DestroyTexture(be->tex);
     SDL_DestroyRenderer(be->ren);
     SDL_DestroyWindow(be->win);
+    SDL_CloseAudioDevice(be->dev);
     SDL_free(be);
     SDL_Quit();
 }
@@ -101,13 +123,11 @@ Event be_get_event(Backend* be) {
     while (SDL_PollEvent(&e)) {
         if (e.type == SDL_QUIT) {
             return QUIT;
-        } else if (e.type == SDL_KEYDOWN && e.key.repeat == 0) {
+        } 
+
+        if (e.type == SDL_KEYDOWN && e.key.repeat == 0) {
             return be_get_keydown(be, e.key.keysym.sym);
-        } else if (e.type == SDL_KEYUP && e.key.repeat == 0) {
-            return be_get_keyup(e.key.keysym.sym);
-        } else {
-            continue;
-        }
+        } 
     }
 
     return IDLE;
@@ -139,21 +159,6 @@ Event be_get_keydown(Backend* be, SDL_Keycode key) {
         case SDLK_F4:
             be_toggle_fullscreen(be);
             return IDLE;
-        default:
-            return IDLE;
-    }
-}
-
-Event be_get_keyup(SDL_Keycode key) {
-    switch (key) {
-        case SDLK_UP:
-            return KU_UP;
-        case SDLK_DOWN:
-            return KU_DOWN;
-        case SDLK_LEFT:
-            return KU_LEFT;
-        case SDLK_RIGHT:
-            return KU_RIGHT;
         default:
             return IDLE;
     }
@@ -191,6 +196,12 @@ void be_fill_rect(Backend* be, int x, int y, int w, int h, int color) {
     SDL_SetRenderDrawColor(be->ren, c.r, c.g, c.b, c.a);
     SDL_Rect dst = {x, y, w, h};
     SDL_RenderFillRect(be->ren, &dst);
+}
+
+void be_queue_audio(Backend* be, const uint8_t* data, uint32_t len) {
+    if (SDL_QueueAudio(be->dev, data, len)) {
+        log_error();
+    }
 }
 
 void be_draw_line(Backend* be, int x1, int y1, int x2, int y2, int color) {

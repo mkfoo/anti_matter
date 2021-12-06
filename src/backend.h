@@ -7,6 +7,7 @@ typedef struct {
     SDL_Window* win;
     SDL_Renderer* ren;
     SDL_Texture* tex;
+    SDL_AudioDeviceID dev;
 } Backend;
 
 typedef enum {
@@ -18,10 +19,6 @@ typedef enum {
     KD_RIGHT,
     KD_SPC,
     KD_F1,
-    KU_UP,
-    KU_DOWN,
-    KU_LEFT,
-    KU_RIGHT,
     IDLE,
 } Event;
 
@@ -38,6 +35,8 @@ void be_blit_text(Backend* be, int x, int y, char* str);
 void be_fill_rect(Backend* be, int x, int y, int w, int h, int color);
 
 void be_draw_line(Backend* be, int x1, int y1, int x2, int y2, int color);
+
+void be_queue_audio(Backend* be, const uint8_t* data, uint32_t len);
 
 uint32_t be_get_millis(void);
 
