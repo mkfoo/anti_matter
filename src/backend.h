@@ -19,6 +19,9 @@ typedef enum {
     KD_RIGHT,
     KD_SPC,
     KD_F1,
+    KD_F2,
+    KD_F5,
+    KD_F6,
     IDLE,
 } Event;
 
@@ -36,7 +39,7 @@ void be_fill_rect(Backend* be, int x, int y, int w, int h, int color);
 
 void be_draw_line(Backend* be, int x1, int y1, int x2, int y2, int color);
 
-void be_queue_audio(Backend* be, const uint8_t* data, uint32_t len);
+void be_queue_audio(Backend* be, const int16_t* data, uint32_t len);
 
 uint32_t be_get_millis(void);
 

@@ -26,11 +26,11 @@ const SDL_Color COLORS[16] = {
 };
 
 const SDL_AudioSpec SPEC_WANTED = {
-    .freq = 44100,
+    .freq = SAMPLE_RATE,
     .format = AUDIO_S16SYS,
     .channels = 1,
     .silence = 0,
-    .samples = 4096,
+    .samples = BUF_LEN,
     .size = 0,
     .callback = NULL,
     .userdata = NULL,
@@ -46,9 +46,9 @@ Backend* be_init(void) {
         return NULL;
     }
 
-    err = SDL_Init(SDL_INIT_VIDEO 
-                    | SDL_INIT_AUDIO 
-                    | SDL_INIT_EVENTS);
+    err = SDL_Init(SDL_INIT_VIDEO | 
+                    SDL_INIT_AUDIO | 
+                    SDL_INIT_EVENTS);
 
     if (err) {
         log_error(); 
@@ -152,13 +152,17 @@ Event be_get_keydown(Backend* be, SDL_Keycode key) {
         case SDLK_F1:
             return KD_F1;
         case SDLK_F2:
-            return IDLE;
+            return KD_F2;
         case SDLK_F3:
             be_toggle_scale(be);
             return IDLE;
         case SDLK_F4:
             be_toggle_fullscreen(be);
             return IDLE;
+        case SDLK_F5:
+            return KD_F5;
+        case SDLK_F6:
+            return KD_F6;
         default:
             return IDLE;
     }
@@ -198,7 +202,7 @@ void be_fill_rect(Backend* be, int x, int y, int w, int h, int color) {
     SDL_RenderFillRect(be->ren, &dst);
 }
 
-void be_queue_audio(Backend* be, const uint8_t* data, uint32_t len) {
+void be_queue_audio(Backend* be, const int16_t* data, uint32_t len) {
     if (SDL_QueueAudio(be->dev, data, len)) {
         log_error();
     }

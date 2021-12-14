@@ -18,8 +18,6 @@ void decorate(Backend* be);
 
 void render_stats(GameState* gs, Backend* be);
 
-void update_status(GameState* gs);
-
 void remove_destroyed(GameState* gs);
 
 Adjacent find_adjacent(GameState* gs, Sprite* s, Delta d);
@@ -27,11 +25,12 @@ Adjacent find_adjacent(GameState* gs, Sprite* s, Delta d);
 GameState* gs_init(void) {
     GameState* gs = calloc(1, sizeof(GameState));
 
-    if (gs == NULL) { 
+    if (gs == NULL) {
         return NULL;
     }
 
     gs->t.prev = be_get_millis();
+    gs->sound = sg_init();
     gs->high = 10000;
     gs_set_scene(gs, sc_splash, 5); 
     add_sprite(gs, 0, 0, ID_NIL);
@@ -42,6 +41,7 @@ bool gs_update(GameState* gs, Backend* be) {
     t_limit_fps(&gs->t);
     be_present(be);
     t_advance(&gs->t);
+    sg_generate(gs->sound, be, gs->t.ticks);
     SceneFn* scene = gs->scene;
     return scene(gs, be);
 }
@@ -199,6 +199,7 @@ void gs_render_sprites(GameState* gs, Backend* be) {
 }
 
 void gs_quit(GameState* gs) {
+    sg_quit(gs->sound);
     free(gs);
 }
 
@@ -272,7 +273,7 @@ bool check_los(GameState* gs, Sprite* s1, Sprite* s2) {
 void remove_destroyed(GameState* gs) {
     for (int i = 3; i < gs->n_sprites; i++) {
         Sprite* s = &gs->sprites[i];
-        
+
         if (has_flag(s, F_DESTROY)) {
             destroy_sprite(s);
         }
@@ -288,7 +289,7 @@ Adjacent find_adjacent(GameState* gs, Sprite* s1, Delta d) {
 
     for (int i = 1; i < gs->n_sprites; i++) {
         Sprite* s2 = &gs->sprites[i];
-        
+
         if (point_equals(s2->p, front)) {
             adj.front = s2;
         } else if (point_equals(s2->p, back)) {
@@ -297,7 +298,7 @@ Adjacent find_adjacent(GameState* gs, Sprite* s1, Delta d) {
             adj.next = s2;
         }
     }
-    
+
     return adj;
 }
 
@@ -313,14 +314,14 @@ void decorate(Backend* be) {
         be_blit_tile(be, n, 176, t + 6);
         be_blit_tile(be, 0, n, t + 7);
         be_blit_tile(be, 176, n, t + 5);
-    }    
- 
+    }
+
     for (int x = 192; x < 240; x += 16) {
         for (int y = 27; y < 183; y += 26) {
             be_blit_tile(be, x, y, t + 4);
         }
     }
-    
+
     for (int y = 27; y < 183; y += 26) {
         be_blit_tile(be, 176, y, t + 8);
         be_blit_tile(be, 240, y, t + 9);
@@ -340,7 +341,7 @@ void render_stats(GameState* gs, Backend* be) {
     static char level[8], high[8], score[8], energy[8], lives[8];
 
     be_fill_rect(be, 184, 0, 80, 192, 1); 
-    
+
     snprintf(level, 8, "%7d", gs->level);
     snprintf(high, 8, "%7d", gs->high);
     snprintf(score, 8, "%7d", gs->score);
@@ -363,7 +364,7 @@ void gs_render_help(GameState* gs, Backend* be) {
     int x = 42;
     int y = 28;
     int m = 16;
-    
+
     if (gs->t.phase > 0.25) {
         be_blit_text(be, x + 31, y, "PAUSED");
     }

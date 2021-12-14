@@ -5,6 +5,7 @@
 #include "backend.h"
 #include "sprite.h"
 #include "timer.h"
+#include "sound.h"
 
 typedef struct GameState GameState;
 
@@ -13,6 +14,7 @@ typedef bool SceneFn(GameState* gs, Backend* be);
 struct GameState {
     Timer t;
     SceneFn* scene;
+    SoundGen* sound;
     int16_t level;
     int32_t high;
     int32_t score;

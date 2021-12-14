@@ -4,14 +4,14 @@
 
 void render_title(Backend* be, int x0, int y);
 
-void fade_effect(Backend* be, float phase, int color); 
+void fade_effect(Backend* be, float phase, int color);
 
-void lose_life(GameState* gs); 
+void lose_life(GameState* gs);
 
 void render_title(Backend* be, int x0, int y) {
     for (int i = 0; i < 8; i++) {
         int x = x0 + i * TILE_W;
-        be_blit_tile(be, x, y, 62 + i); 
+        be_blit_tile(be, x, y, 62 + i);
     }
 }
 
@@ -41,7 +41,7 @@ bool sc_splash(GameState* gs, Backend* be) {
     float phase = t_get_phase(&gs->t);
 
     if (phase < 0.8f) {
-        be_fill_rect(be, 0, 0, WINDOW_W, WINDOW_H, 5); 
+        be_fill_rect(be, 0, 0, WINDOW_W, WINDOW_H, 5);
     } else if (phase == 1.0f) {
         gs_set_scene(gs, sc_title_anim, 2);
     }
@@ -83,13 +83,22 @@ bool sc_title(GameState* gs, Backend* be) {
             gs_load_level(gs);
             gs_set_scene(gs, sc_start_level, 2);
             break;
+        case KD_F2:
+            sg_toggle_mute(gs->sound);
+            break;
+        case KD_F5:
+            sg_change_vol(gs->sound, -1);
+            break;
+        case KD_F6:
+            sg_change_vol(gs->sound, 1);
+            break;
         case KD_ESC:
         case QUIT:
             return false;
         default:
             break;
     }
-    
+
     return true;
 }
 
@@ -101,7 +110,7 @@ bool sc_start_level(GameState* gs, Backend* be) {
 
     if (phase == 1.0f) {
         gs_set_scene(gs, sc_playing, 0);
-    } 
+    }
 
     return true;
 }
@@ -134,6 +143,15 @@ bool sc_playing(GameState* gs, Backend* be) {
         case KD_F1:
             gs->energy = 0;
             break;
+        case KD_F2:
+            sg_toggle_mute(gs->sound);
+            break;
+        case KD_F5:
+            sg_change_vol(gs->sound, -1);
+            break;
+        case KD_F6:
+            sg_change_vol(gs->sound, 1);
+            break;
         case QUIT:
             return false;
         default:
@@ -153,12 +171,15 @@ bool sc_paused(GameState* gs, Backend* be) {
             gs_set_scene(gs, sc_playing, 0);
             break;
         case KD_F1:
+            gs->energy = 0;
+            gs_set_scene(gs, sc_playing, 0);
+            break;
         case QUIT:
             return false;
         default:
             break;
     }
-    
+
     return true;
 }
 
