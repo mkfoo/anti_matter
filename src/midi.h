@@ -1,6 +1,11 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+typedef struct {
+    uint8_t* data;
+    size_t len;
+} MidiFile;
+
 typedef enum {
     NOTE_OFF = 0x80,
     NOTE_ON = 0x90,
@@ -40,7 +45,7 @@ typedef struct {
     uint32_t next;
 } MidiSeq;
 
-MidiSeq* ms_init(uint8_t* data, size_t len);
+MidiSeq* ms_init(void);
 void ms_play_track(MidiSeq* self, uint16_t track_id); 
 MidiEvent ms_advance(MidiSeq* self, size_t i);
 void ms_quit(MidiSeq* self);

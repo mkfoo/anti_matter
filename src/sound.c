@@ -1,3 +1,5 @@
+#include <stdio.h>
+#include <assert.h>
 #include "sound.h"
 
 #define ENV_PERIOD 32000
@@ -18,21 +20,11 @@ const int32_t PTAB[128] = {
     1054, 994, 939, 886, 836, 789, 745, 703, 664, 626, 591, 558, 527, 497, 469, 443, 418, 395, 372, 352,
 };
 
-uint8_t TEST_MIDI[134] = {
-    0x4d, 0x54, 0x68, 0x64, 0x00, 0x00, 0x00, 0x06, 0x00, 0x02, 0x00, 0x04, 0x00, 0x60, 0x4d,
-    0x54, 0x72, 0x6b, 0x00, 0x00, 0x00, 0x14, 0x00, 0xff, 0x58, 0x04, 0x04, 0x02, 0x18, 0x08,
-    0x00, 0xff, 0x51, 0x03, 0x07, 0xa1, 0x20, 0x83, 0x00, 0xff, 0x2f, 0x00, 0x4d, 0x54, 0x72,
-    0x6b, 0x00, 0x00, 0x00, 0x10, 0x00, 0xc0, 0x05, 0x81, 0x40, 0x90, 0x4c, 0x20, 0x81, 0x40,
-    0x4c, 0x00, 0x00, 0xff, 0x2f, 0x00, 0x4d, 0x54, 0x72, 0x6b, 0x00, 0x00, 0x00, 0x0f, 0x00,
-    0xc1, 0x2e, 0x60, 0x91, 0x43, 0x40, 0x82, 0x20, 0x43, 0x00, 0x00, 0xff, 0x2f, 0x00, 0x4d,
-    0x54, 0x72, 0x6b, 0x00, 0x00, 0x00, 0x15, 0x00, 0xc2, 0x46, 0x00, 0x92, 0x30, 0x60, 0x00,
-    0x3c, 0x60, 0x83, 0x00, 0x30, 0x00, 0x00, 0x3c, 0x00, 0x00, 0xff, 0x2f, 0x00 
-};
-
 void reset_env(Channel* self);
 void advance_env(Channel* self, size_t i);
 int16_t gen_sample(Channel* self);
-void handle_midi_event(SoundGen* self, MidiEvent event);
+void handle_midi_event(SoundGen* self, MidiEvent e);
+void handle_cc(SoundGen* self, uint8_t chn, uint8_t cc, uint8_t val);
 
 void reset_env(Channel* self) {
     if (self->env_step < 0) {
@@ -66,11 +58,23 @@ void handle_midi_event(SoundGen* self, MidiEvent e) {
             break;
         case NOTE_ON:
             if (e.data2) {
-                self->chans[chn].env_step = -1;
                 reset_env(&self->chans[chn]);
                 self->chans[chn].osc_period = PTAB[e.data1];
             }
             self->chans[chn].vel = e.data2;
+            break;
+        case CONTROL_CHANGE:
+            handle_cc(self, chn, e.data1, e.data2);
+            break;
+        default:
+            break;
+    }
+}
+
+void handle_cc(SoundGen* self, uint8_t chn, uint8_t cc, uint8_t val) {
+    switch (cc) {
+        case 80:
+            self->chans[chn].env_step = 64 - (int32_t) val;
             break;
         default:
             break;
@@ -83,12 +87,17 @@ SoundGen* sg_init(void) {
     self->vol = MAX_VOL / 2;
     self->buf = calloc(BUF_LEN, sizeof(int16_t));
     assert(self->buf != NULL);
-    self->midi = ms_init(TEST_MIDI, sizeof TEST_MIDI);
-    ms_play_track(self->midi, 1);
+    self->midi = ms_init();
     self->chans[0].osc_period = PTAB[60];
     self->chans[1].osc_period = PTAB[60];
     self->chans[2].osc_period = PTAB[60];
     return self;
+}
+
+void sg_play(SoundGen* self, uint16_t track_id) {
+    if (!self->midi->playing) {
+        ms_play_track(self->midi, track_id);
+    }
 }
 
 void sg_generate(SoundGen* self, Backend* be, uint32_t ticks) {

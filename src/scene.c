@@ -3,9 +3,7 @@
 #include "timer.h"
 
 void render_title(Backend* be, int x0, int y);
-
 void fade_effect(Backend* be, float phase, int color);
-
 void lose_life(GameState* gs);
 
 void render_title(Backend* be, int x0, int y) {
@@ -98,6 +96,8 @@ bool sc_title(GameState* gs, Backend* be) {
         default:
             break;
     }
+
+    sg_play(gs->sound, 0);
 
     return true;
 }
