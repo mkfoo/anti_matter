@@ -18,7 +18,7 @@
 #define MS_PER_FRAME 16
 #define MS_PER_TICK 4
 #define SAMPLE_RATE 44100
-#define SAMPLES_PER_TICK 178
+#define SAMPLES_PER_TICK 180
 #define TEXTURE_PATH "assets/graphics.bmp"
 #define TILES_PER_ROW 10
 #define TILE_H 16

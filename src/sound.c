@@ -18,21 +18,34 @@ const int32_t PTAB[128] = {
     1054, 994, 939, 886, 836, 789, 745, 703, 664, 626, 591, 558, 527, 497, 469, 443, 418, 395, 372, 352,
 };
 
+uint8_t TEST_MIDI[134] = {
+    0x4d, 0x54, 0x68, 0x64, 0x00, 0x00, 0x00, 0x06, 0x00, 0x02, 0x00, 0x04, 0x00, 0x60, 0x4d,
+    0x54, 0x72, 0x6b, 0x00, 0x00, 0x00, 0x14, 0x00, 0xff, 0x58, 0x04, 0x04, 0x02, 0x18, 0x08,
+    0x00, 0xff, 0x51, 0x03, 0x07, 0xa1, 0x20, 0x83, 0x00, 0xff, 0x2f, 0x00, 0x4d, 0x54, 0x72,
+    0x6b, 0x00, 0x00, 0x00, 0x10, 0x00, 0xc0, 0x05, 0x81, 0x40, 0x90, 0x4c, 0x20, 0x81, 0x40,
+    0x4c, 0x00, 0x00, 0xff, 0x2f, 0x00, 0x4d, 0x54, 0x72, 0x6b, 0x00, 0x00, 0x00, 0x0f, 0x00,
+    0xc1, 0x2e, 0x60, 0x91, 0x43, 0x40, 0x82, 0x20, 0x43, 0x00, 0x00, 0xff, 0x2f, 0x00, 0x4d,
+    0x54, 0x72, 0x6b, 0x00, 0x00, 0x00, 0x15, 0x00, 0xc2, 0x46, 0x00, 0x92, 0x30, 0x60, 0x00,
+    0x3c, 0x60, 0x83, 0x00, 0x30, 0x00, 0x00, 0x3c, 0x00, 0x00, 0xff, 0x2f, 0x00 
+};
+
 void reset_env(Channel* self);
-
-void advance_env(Channel* self);
-
+void advance_env(Channel* self, size_t i);
 int16_t gen_sample(Channel* self);
+void handle_midi_event(SoundGen* self, MidiEvent event);
 
 void reset_env(Channel* self) {
-    self->env_phase = self->env_mode * ENV_PERIOD;
+    if (self->env_step < 0) {
+        self->env_phase = ENV_PERIOD;
+    } else {
+        self->env_phase = 0;
+    }
 }
 
-void advance_env(Channel* self) {
-    int32_t step = self->env_step * (!self->env_mode * 2 - 1);
-    int32_t next = self->env_phase + step;
-    bool cond = 0 <= next && next <= ENV_PERIOD;
-    self->env_phase += step * cond;
+void advance_env(Channel* self, size_t i) {
+    int32_t next = self->env_phase + self->env_step;
+    bool cond = (0 <= next && next <= ENV_PERIOD) && (i % ENV_RATE == 0);
+    self->env_phase += self->env_step * cond;
 }
 
 int16_t gen_sample(Channel* self) {
@@ -43,12 +56,35 @@ int16_t gen_sample(Channel* self) {
     return (int16_t) (osc_v * env_v * (self->vel / 4));
 }
 
+void handle_midi_event(SoundGen* self, MidiEvent e) {
+    uint8_t status = e.status & 0xf0;
+    uint8_t chn = (e.status & 0x0f) % 3;
+
+    switch (status) {
+        case NOTE_OFF:
+            self->chans[chn].vel = 0;
+            break;
+        case NOTE_ON:
+            if (e.data2) {
+                self->chans[chn].env_step = -1;
+                reset_env(&self->chans[chn]);
+                self->chans[chn].osc_period = PTAB[e.data1];
+            }
+            self->chans[chn].vel = e.data2;
+            break;
+        default:
+            break;
+    }
+}
+
 SoundGen* sg_init(void) {
     SoundGen* self = calloc(1, sizeof(SoundGen));
     assert(self != NULL);
+    self->vol = MAX_VOL / 2;
     self->buf = calloc(BUF_LEN, sizeof(int16_t));
     assert(self->buf != NULL);
-    self->vol = MAX_VOL / 2;
+    self->midi = ms_init(TEST_MIDI, sizeof TEST_MIDI);
+    ms_play_track(self->midi, 1);
     self->chans[0].osc_period = PTAB[60];
     self->chans[1].osc_period = PTAB[60];
     self->chans[2].osc_period = PTAB[60];
@@ -57,27 +93,26 @@ SoundGen* sg_init(void) {
 
 void sg_generate(SoundGen* self, Backend* be, uint32_t ticks) {
     if (self->vol > 0) {
-        uint32_t smpls = ticks * SAMPLES_PER_TICK;
-
-        if (smpls > BUF_LEN) {
-            smpls = BUF_LEN;
-        }
-
+        size_t smpls = ticks * SAMPLES_PER_TICK;
+        if (smpls > BUF_LEN) smpls = BUF_LEN;
+        MidiEvent event;
         int16_t out = 0;
 
         for (size_t i = 0; i < smpls; i++) {
-            if (i % ENV_RATE == 0) {
-                advance_env(&self->chans[0]);
-                advance_env(&self->chans[1]);
-                advance_env(&self->chans[2]);
-            }
+            do {
+                event = ms_advance(self->midi, i);
+                handle_midi_event(self, event);
+            } while (event.status);
 
+            advance_env(&self->chans[0], i);
+            advance_env(&self->chans[1], i);
+            advance_env(&self->chans[2], i);
             out = gen_sample(&self->chans[0]);
             out += gen_sample(&self->chans[1]);
             out += gen_sample(&self->chans[2]);
             self->buf[i] = out * self->vol;
         }
-
+        
         uint32_t len = smpls * sizeof(int16_t);
         be_queue_audio(be, self->buf, len);
     }
