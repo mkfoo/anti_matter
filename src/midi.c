@@ -173,6 +173,10 @@ void ms_play_track(MidiSeq* self, uint16_t track_id) {
     self->playing = te.event.status != END_OF_TRACK;
 }
 
+void ms_stop(MidiSeq* self) {
+    self->playing = false;
+}
+
 MidiEvent ms_advance(MidiSeq* self, size_t i) {
     uint32_t now = self->clock + (i % SAMPLES_PER_TICK == 0);
 

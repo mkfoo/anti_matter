@@ -47,5 +47,6 @@ typedef struct {
 
 MidiSeq* ms_init(void);
 void ms_play_track(MidiSeq* self, uint16_t track_id); 
+void ms_stop(MidiSeq* self);
 MidiEvent ms_advance(MidiSeq* self, size_t i);
 void ms_quit(MidiSeq* self);

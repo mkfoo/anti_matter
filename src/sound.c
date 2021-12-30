@@ -100,6 +100,13 @@ void sg_play(SoundGen* self, uint16_t track_id) {
     }
 }
 
+void sg_stop(SoundGen* self) {
+    ms_stop(self->midi);
+    self->chans[0].vel = 0;
+    self->chans[1].vel = 0;
+    self->chans[2].vel = 0;
+}
+
 void sg_generate(SoundGen* self, Backend* be, uint32_t ticks) {
     if (self->vol > 0) {
         size_t smpls = ticks * SAMPLES_PER_TICK;

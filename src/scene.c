@@ -37,10 +37,25 @@ void lose_life(GameState* gs) {
 
 bool sc_splash(GameState* gs, Backend* be) {
     float phase = t_get_phase(&gs->t);
+    int x0 = 88;
+    int y0 = 80;
+
+    sg_play(gs->sound, 0);
 
     if (phase < 0.8f) {
-        be_fill_rect(be, 0, 0, WINDOW_W, WINDOW_H, 5);
-    } else if (phase == 1.0f) {
+        be_fill_rect(be, 0, 0, WINDOW_W, WINDOW_H, 4);
+
+        if (phase > 0.4) {
+            be_blit_text(be, x0 + 24, y0 - 8, "(Not)");
+        }
+
+        be_blit_text(be, x0, y0,  "MSX  system");
+        be_blit_text(be, x0, y0 + 8, "version 1.0");
+        be_blit_text(be, x0 - 48, y0 + 24, "Copyright 2020 by mkfoo");
+    }
+
+
+    if (phase == 1.0f) {
         gs_set_scene(gs, sc_title_anim, 2);
     }
 
@@ -50,7 +65,7 @@ bool sc_splash(GameState* gs, Backend* be) {
 bool sc_title_anim(GameState* gs, Backend* be) {
     float phase = t_get_phase(&gs->t);
     int x0 = 64;
-    int y0 = 64;
+    int y0 = 88;
 
     for (int i = 0; i < 8; i++) {
         float x = (float) i * 8.0f * (1.0f - phase);
@@ -58,6 +73,23 @@ bool sc_title_anim(GameState* gs, Backend* be) {
         render_title(be, x0 + (int) x, y0 - (int) y);
         render_title(be, x0 - (int) x, y0 + (int) y);
     }
+
+    sg_play(gs->sound, 1);
+
+    if (phase == 1.0f) {
+        gs_set_scene(gs, sc_title_move, 1);
+    }
+
+    return true;
+}
+
+bool sc_title_move(GameState* gs, Backend* be) {
+    float phase = t_get_phase(&gs->t);
+    int x0 = 64;
+    int y0 = 88;
+    int y = y0 - phase * 32.0f;
+
+    render_title(be, x0, y);
 
     if (phase == 1.0f) {
         gs_set_scene(gs, sc_title, 0);
@@ -67,10 +99,16 @@ bool sc_title_anim(GameState* gs, Backend* be) {
 }
 
 bool sc_title(GameState* gs, Backend* be) {
-    render_title(be, 64, 64);
+    static char high[8];
+    snprintf(high, 8, "%7d", gs->high);
+    be_blit_text(be, 60, 24, "HIGH-SCORE");
+    be_blit_text(be, 60 + 88, 24, high);
+    be_blit_text(be, 72, 160, "(c) 2020 mkfoo");
+
+    render_title(be, 64, 56);
 
     if (t_get_phase(&gs->t) > 0.25) {
-        be_blit_text(be, 72, 128, "PUSH SPACE KEY");
+        be_blit_text(be, 72, 112, "PUSH SPACE KEY");
     }
 
     switch(be_get_event(be)) {
@@ -97,12 +135,13 @@ bool sc_title(GameState* gs, Backend* be) {
             break;
     }
 
-    sg_play(gs->sound, 0);
+    sg_play(gs->sound, 1);
 
     return true;
 }
 
 bool sc_start_level(GameState* gs, Backend* be) {
+    sg_play(gs->sound, 2);
     gs_render_sprites(gs, be);
     float phase = t_get_phase(&gs->t);
     fade_effect(be, phase, 1);
@@ -110,6 +149,7 @@ bool sc_start_level(GameState* gs, Backend* be) {
 
     if (phase == 1.0f) {
         gs_set_scene(gs, sc_playing, 0);
+        sg_play(gs->sound, 3);
     }
 
     return true;
@@ -139,6 +179,7 @@ bool sc_playing(GameState* gs, Backend* be) {
             break;
         case KD_ESC:
             gs_set_scene(gs, sc_paused, 0);
+            sg_play(gs->sound, 4);
             break;
         case KD_F1:
             gs->energy = 0;
@@ -169,6 +210,7 @@ bool sc_paused(GameState* gs, Backend* be) {
         case KD_SPC:
         case KD_ESC:
             gs_set_scene(gs, sc_playing, 0);
+            sg_play(gs->sound, 3);
             break;
         case KD_F1:
             gs->energy = 0;

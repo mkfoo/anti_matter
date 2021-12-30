@@ -2,6 +2,7 @@
 
 bool sc_splash(GameState* gs, Backend* be);
 bool sc_title_anim(GameState* gs, Backend* be);
+bool sc_title_move(GameState* gs, Backend* be);
 bool sc_title(GameState* gs, Backend* be);
 bool sc_start_level(GameState* gs, Backend* be);
 bool sc_playing(GameState* gs, Backend* be);

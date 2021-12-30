@@ -48,6 +48,7 @@ bool gs_update(GameState* gs, Backend* be) {
 
 void gs_set_scene(GameState* gs, SceneFn* scene, uint32_t delay) {
     t_set_delay(&gs->t, delay);
+    sg_stop(gs->sound);
     gs->scene = scene;
 }
 
