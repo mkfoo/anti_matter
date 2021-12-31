@@ -41,6 +41,7 @@ typedef struct {
     bool playing;
     MidiReader* reader; 
     MidiEvent event;
+    uint32_t count;
     uint32_t clock;
     uint32_t next;
 } MidiSeq;
@@ -48,5 +49,5 @@ typedef struct {
 MidiSeq* ms_init(void);
 void ms_play_track(MidiSeq* self, uint16_t track_id); 
 void ms_stop(MidiSeq* self);
-MidiEvent ms_advance(MidiSeq* self, size_t i);
+MidiEvent ms_advance(MidiSeq* self);
 void ms_quit(MidiSeq* self);

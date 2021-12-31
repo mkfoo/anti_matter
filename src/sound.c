@@ -107,16 +107,16 @@ void sg_stop(SoundGen* self) {
     self->chans[2].vel = 0;
 }
 
-void sg_generate(SoundGen* self, Backend* be, uint32_t ticks) {
+void sg_generate(SoundGen* self, Backend* be, uint32_t lag) {
     if (self->vol > 0) {
-        size_t smpls = ticks * SAMPLES_PER_TICK;
+        size_t smpls = ceil(SAMPLE_RATE / 1000.0f * (float) lag);
         if (smpls > BUF_LEN) smpls = BUF_LEN;
         MidiEvent event;
         int16_t out = 0;
 
         for (size_t i = 0; i < smpls; i++) {
             do {
-                event = ms_advance(self->midi, i);
+                event = ms_advance(self->midi);
                 handle_midi_event(self, event);
             } while (event.status);
 

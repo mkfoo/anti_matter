@@ -4,22 +4,16 @@
 #include "level_data.h"
 #include "scene.h"
 
+void advance(GameState* self);
+void limit_fps(GameState* self);
 void add_sprite(GameState* gs, int16_t x, int16_t y, uint8_t id);
-
 void set_sprite_pos(GameState* gs, int16_t x, int16_t y, uint8_t id);
-
 void add_wall(GameState* gs, int16_t x, int16_t y, uint8_t tile);
-
 void check_overlap(GameState* gs, Sprite* s1, Sprite* s2);
-
 bool check_los(GameState* gs, Sprite* s1, Sprite* s2);
-
 void decorate(Backend* be);
-
 void render_stats(GameState* gs, Backend* be);
-
 void remove_destroyed(GameState* gs);
-
 Adjacent find_adjacent(GameState* gs, Sprite* s, Delta d);
 
 GameState* gs_init(void) {
@@ -29,26 +23,40 @@ GameState* gs_init(void) {
         return NULL;
     }
 
-    gs->t.prev = be_get_millis();
+    gs->prev = be_get_millis();
     gs->sound = sg_init();
-    gs->high = 10000;
+    gs->high = 1000;
     gs_set_scene(gs, sc_splash, 5); 
+    sg_play(gs->sound, 0);
     add_sprite(gs, 0, 0, ID_NIL);
     return gs;
 }
 
+float gs_phase(GameState* self) {
+    if (self->delay == 0) {
+        return self->phase;
+    }
+
+    if (self->prev < (self->start + self->delay)) {
+        return (float) (self->prev - self->start) / (float) self->delay;
+    }
+
+    return 1.0f;
+}
+
 bool gs_update(GameState* gs, Backend* be) {
-    t_limit_fps(&gs->t);
-    be_present(be);
-    t_advance(&gs->t);
-    sg_generate(gs->sound, be, gs->t.ticks);
+    advance(gs);
     SceneFn* scene = gs->scene;
-    return scene(gs, be);
+    bool retval = scene(gs, be);
+    sg_generate(gs->sound, be, gs->lag);
+    be_present(be);
+    limit_fps(gs);
+    return retval;
 }
 
 void gs_set_scene(GameState* gs, SceneFn* scene, uint32_t delay) {
-    t_set_delay(&gs->t, delay);
-    sg_stop(gs->sound);
+    gs->start = gs->prev;
+    gs->delay = delay * 1000;
     gs->scene = scene;
 }
 
@@ -93,7 +101,7 @@ void gs_load_level(GameState* gs) {
 }
 
 void gs_adv_state(GameState* gs) {
-    uint32_t moves = gs->t.ticks / MOVEMENT_SPEED;
+    uint32_t moves = gs->lag * MOVEMENT_SPEED;
 
     for (size_t i = 1; i < gs->n_sprites; i++) {
         Sprite* s = &gs->sprites[i];
@@ -180,7 +188,7 @@ void gs_render_sprites(GameState* gs, Backend* be) {
             int16_t x = s->p.x;
             int16_t y = s->p.y;
             uint8_t tile = s->tile;
-            float offset = gs->t.phase * 8.0f;
+            float offset = gs->phase * 8.0f;
 
             if (has_flag(s, F_ANIMATED)) {
                 tile += (uint8_t) offset % 4;
@@ -209,6 +217,23 @@ void gs_score(GameState* gs, int32_t num) {
 
     if (gs->score > gs->high) {
         gs->high = gs->score;
+    }
+}
+
+void advance(GameState* self) {
+    uint32_t curr = be_get_millis();
+    uint32_t lag = curr - self->prev;
+    self->phase = fmodf(self->phase + ANIM_SPEED * (float) lag, 1.0f);
+    self->lag = lag;
+    self->prev = curr;
+}
+
+void limit_fps(GameState* self) {
+    uint32_t next = self->prev + MS_PER_FRAME;
+    uint32_t now = be_get_millis();
+
+    if (next > now) {
+        be_delay(next - now);
     }
 }
 
@@ -366,7 +391,7 @@ void gs_render_help(GameState* gs, Backend* be) {
     int y = 28;
     int m = 16;
 
-    if (gs->t.phase > 0.25) {
+    if (gs->phase > 0.25) {
         be_blit_text(be, x + 31, y, "PAUSED");
     }
 

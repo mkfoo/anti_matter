@@ -4,16 +4,19 @@
 #include "antimatter.h"
 #include "backend.h"
 #include "sprite.h"
-#include "timer.h"
 #include "sound.h"
 
 typedef struct GameState GameState;
 typedef bool SceneFn(GameState* gs, Backend* be);
 
 struct GameState {
-    Timer t;
     SceneFn* scene;
     SoundGen* sound;
+    float phase;
+    uint32_t start;
+    uint32_t delay;
+    uint32_t prev;
+    uint32_t lag;
     int16_t level;
     int32_t high;
     int32_t score;
@@ -27,6 +30,7 @@ struct GameState {
 };
 
 GameState* gs_init(void);
+float gs_phase(GameState* gs);
 bool gs_update(GameState* gs, Backend* be);
 void gs_set_scene(GameState* gs, SceneFn* scene, uint32_t delay);
 void gs_load_level(GameState* gs);

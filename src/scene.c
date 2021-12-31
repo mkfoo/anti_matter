@@ -1,6 +1,5 @@
 #include "scene.h"
 #include "sprite.h"
-#include "timer.h"
 
 void render_title(Backend* be, int x0, int y);
 void fade_effect(Backend* be, float phase, int color);
@@ -36,11 +35,9 @@ void lose_life(GameState* gs) {
 }
 
 bool sc_splash(GameState* gs, Backend* be) {
-    float phase = t_get_phase(&gs->t);
+    float phase = gs_phase(gs);
     int x0 = 88;
     int y0 = 80;
-
-    sg_play(gs->sound, 0);
 
     if (phase < 0.8f) {
         be_fill_rect(be, 0, 0, WINDOW_W, WINDOW_H, 4);
@@ -54,7 +51,6 @@ bool sc_splash(GameState* gs, Backend* be) {
         be_blit_text(be, x0 - 48, y0 + 24, "Copyright 2020 by mkfoo");
     }
 
-
     if (phase == 1.0f) {
         gs_set_scene(gs, sc_title_anim, 2);
     }
@@ -63,7 +59,7 @@ bool sc_splash(GameState* gs, Backend* be) {
 }
 
 bool sc_title_anim(GameState* gs, Backend* be) {
-    float phase = t_get_phase(&gs->t);
+    float phase = gs_phase(gs);
     int x0 = 64;
     int y0 = 88;
 
@@ -84,7 +80,7 @@ bool sc_title_anim(GameState* gs, Backend* be) {
 }
 
 bool sc_title_move(GameState* gs, Backend* be) {
-    float phase = t_get_phase(&gs->t);
+    float phase = gs_phase(gs);
     int x0 = 64;
     int y0 = 88;
     int y = y0 - phase * 32.0f;
@@ -104,10 +100,9 @@ bool sc_title(GameState* gs, Backend* be) {
     be_blit_text(be, 60, 24, "HIGH-SCORE");
     be_blit_text(be, 60 + 88, 24, high);
     be_blit_text(be, 72, 160, "(c) 2020 mkfoo");
-
     render_title(be, 64, 56);
 
-    if (t_get_phase(&gs->t) > 0.25) {
+    if (gs_phase(gs) > 0.25) {
         be_blit_text(be, 72, 112, "PUSH SPACE KEY");
     }
 
@@ -143,7 +138,7 @@ bool sc_title(GameState* gs, Backend* be) {
 bool sc_start_level(GameState* gs, Backend* be) {
     sg_play(gs->sound, 2);
     gs_render_sprites(gs, be);
-    float phase = t_get_phase(&gs->t);
+    float phase = gs_phase(gs);
     fade_effect(be, phase, 1);
     gs_render_default(gs, be);
 
@@ -229,7 +224,7 @@ bool sc_wait(GameState* gs, Backend* be) {
     gs_render_sprites(gs, be);
     gs_render_default(gs, be);
 
-    if (t_get_phase(&gs->t) == 1.0f) {
+    if (gs_phase(gs) == 1.0f) {
         gs_set_scene(gs, sc_playing, 0);
     } 
 
@@ -257,7 +252,7 @@ bool sc_death1(GameState* gs, Backend* be) {
     gs_render_sprites(gs, be);
     gs_render_default(gs, be);
 
-    if (t_get_phase(&gs->t) == 1.0f) {
+    if (gs_phase(gs) == 1.0f) {
         lose_life(gs);
     }
 
@@ -265,7 +260,7 @@ bool sc_death1(GameState* gs, Backend* be) {
 }
 
 bool sc_death2(GameState* gs, Backend* be) {
-    float phase = t_get_phase(&gs->t);
+    float phase = gs_phase(gs);
     int color = 15;
 
     if (((int) (phase * 41.0f)) % 2 == 0) {
@@ -288,7 +283,7 @@ bool sc_game_over(GameState* gs, Backend* be) {
     be_blit_text(be, 64, 92, "GAME OVER");
     gs_render_default(gs, be);
 
-    if (t_get_phase(&gs->t) == 1.0f) {
+    if (gs_phase(gs) == 1.0f) {
         gs_set_scene(gs, sc_title_anim, 2);
     }
 

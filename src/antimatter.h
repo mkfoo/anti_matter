@@ -1,6 +1,6 @@
 #pragma once
 
-#define ANIM_SPEED 0.005f
+#define ANIM_SPEED 0.0012f
 #define BUF_LEN 4096
 #define CHARS_PER_ROW 20
 #define DECOR_TILE_BASE 70
@@ -14,11 +14,11 @@
 #define MAX_SPRITES 100
 #define MAX_X 176
 #define MAX_Y 176
-#define MOVEMENT_SPEED 2
-#define MS_PER_FRAME 16
-#define MS_PER_TICK 4
+#define MOVEMENT_SPEED 0.12f
+#define MS_PER_FRAME 20
+#define MS_PER_TICK 6
 #define SAMPLE_RATE 44100
-#define SAMPLES_PER_TICK 180
+#define SAMPLES_PER_TICK 200
 #define TEXTURE_PATH "assets/graphics.bmp"
 #define TILES_PER_ROW 10
 #define TILE_H 16

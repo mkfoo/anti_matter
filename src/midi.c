@@ -177,8 +177,10 @@ void ms_stop(MidiSeq* self) {
     self->playing = false;
 }
 
-MidiEvent ms_advance(MidiSeq* self, size_t i) {
-    uint32_t now = self->clock + (i % SAMPLES_PER_TICK == 0);
+MidiEvent ms_advance(MidiSeq* self) {
+    self->count++;
+    self->count %= SAMPLES_PER_TICK;
+    uint32_t now = self->clock + (self->count == 0);
 
     if (self->playing && now >= self->next) {
         TrackEvent te = read_event(self->reader);
