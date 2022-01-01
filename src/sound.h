@@ -12,6 +12,8 @@ typedef struct {
     int32_t osc_period;
     int32_t env_phase;
     int32_t env_step;
+    int32_t rng_state;
+    int32_t rng_period; 
 } Channel;
 
 typedef struct {

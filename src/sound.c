@@ -7,6 +7,7 @@
 #define ENV_PREC 1000
 #define OSC_PREC 100
 #define MAX_VOL 10
+#define RNG_SEED 0x1bac
 
 const int32_t PTAB[128] = {
     539397, 509123, 480548, 453577, 428120, 404091, 381411, 360004, 339799, 320727, 302726, 285736,
@@ -22,16 +23,13 @@ const int32_t PTAB[128] = {
 
 void reset_env(Channel* self);
 void advance_env(Channel* self, size_t i);
+void advance_rng(Channel* self, size_t i);
 int16_t gen_sample(Channel* self);
 void handle_midi_event(SoundGen* self, MidiEvent e);
 void handle_cc(SoundGen* self, uint8_t chn, uint8_t cc, uint8_t val);
 
 void reset_env(Channel* self) {
-    if (self->env_step < 0) {
-        self->env_phase = ENV_PERIOD;
-    } else {
-        self->env_phase = 0;
-    }
+    self->env_phase = (self->env_step < 0) * ENV_PERIOD;
 }
 
 void advance_env(Channel* self, size_t i) {
@@ -40,12 +38,22 @@ void advance_env(Channel* self, size_t i) {
     self->env_phase += self->env_step * cond;
 }
 
+void advance_rng(Channel* self, size_t i) {
+    if (self->rng_period && !(i % self->rng_period)) {
+        int32_t rs = self->rng_state;
+        self->rng_state = (rs >> 1) ^ ((rs & 1) << 13) ^ ((rs & 1) << 16);
+    }
+}
+
 int16_t gen_sample(Channel* self) {
     self->osc_phase += OSC_PREC;
     self->osc_phase %= self->osc_period;
+    bool cond = self->rng_period == 0;
     int32_t osc_v = (self->osc_phase < self->osc_period / 2) * 2 - 1;
+    int32_t rng_v = (self->rng_state & 1) * 2 - 1;
     int32_t env_v = self->env_phase / ENV_PREC;
-    return (int16_t) (osc_v * env_v * (self->vel / 4));
+    int16_t out_v = osc_v * cond + rng_v * !cond;
+    return (int16_t) (out_v * env_v * (self->vel / 4));
 }
 
 void handle_midi_event(SoundGen* self, MidiEvent e) {
@@ -76,6 +84,9 @@ void handle_cc(SoundGen* self, uint8_t chn, uint8_t cc, uint8_t val) {
         case 80:
             self->chans[chn].env_step = 64 - (int32_t) val;
             break;
+        case 81:
+            self->chans[chn].rng_period = val * 4;
+            break;
         default:
             break;
     }
@@ -91,6 +102,9 @@ SoundGen* sg_init(void) {
     self->chans[0].osc_period = PTAB[60];
     self->chans[1].osc_period = PTAB[60];
     self->chans[2].osc_period = PTAB[60];
+    self->chans[0].rng_state = RNG_SEED;
+    self->chans[1].rng_state = RNG_SEED;
+    self->chans[2].rng_state = RNG_SEED;
     return self;
 }
 
@@ -112,7 +126,7 @@ void sg_generate(SoundGen* self, Backend* be, uint32_t lag) {
         size_t smpls = ceil(SAMPLE_RATE / 1000.0f * (float) lag);
         if (smpls > BUF_LEN) smpls = BUF_LEN;
         MidiEvent event;
-        int16_t out = 0;
+        int16_t out;
 
         for (size_t i = 0; i < smpls; i++) {
             do {
@@ -120,15 +134,17 @@ void sg_generate(SoundGen* self, Backend* be, uint32_t lag) {
                 handle_midi_event(self, event);
             } while (event.status);
 
-            advance_env(&self->chans[0], i);
-            advance_env(&self->chans[1], i);
-            advance_env(&self->chans[2], i);
-            out = gen_sample(&self->chans[0]);
-            out += gen_sample(&self->chans[1]);
-            out += gen_sample(&self->chans[2]);
+            out = 0;
+
+            for (size_t c = 0; c < 3; c++) {
+                advance_env(&self->chans[c], i);
+                advance_rng(&self->chans[c], i);
+                out += gen_sample(&self->chans[c]);
+            }
+
             self->buf[i] = out * self->vol;
         }
-        
+
         uint32_t len = smpls * sizeof(int16_t);
         be_queue_audio(be, self->buf, len);
     }
