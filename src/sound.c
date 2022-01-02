@@ -74,6 +74,9 @@ void handle_midi_event(SoundGen* self, MidiEvent e) {
         case CONTROL_CHANGE:
             handle_cc(self, chn, e.data1, e.data2);
             break;
+        case PITCH_BEND:
+            self->chans[chn].osc_period += -8192 + ((e.data2 << 7) | e.data1);
+            break;
         default:
             break;
     }
@@ -82,10 +85,10 @@ void handle_midi_event(SoundGen* self, MidiEvent e) {
 void handle_cc(SoundGen* self, uint8_t chn, uint8_t cc, uint8_t val) {
     switch (cc) {
         case 80:
-            self->chans[chn].env_step = 64 - (int32_t) val;
+            self->chans[chn].env_step = -64 + val;
             break;
         case 81:
-            self->chans[chn].rng_period = val * 4;
+            self->chans[chn].rng_period = val;
             break;
         default:
             break;

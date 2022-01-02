@@ -101,6 +101,7 @@ bool sc_title(GameState* gs, Backend* be) {
     be_blit_text(be, 60 + 88, 24, high);
     be_blit_text(be, 72, 160, "(c) 2020 mkfoo");
     render_title(be, 64, 56);
+    sg_play(gs->sound, 1);
 
     if (gs_phase(gs) > 0.25) {
         be_blit_text(be, 72, 112, "PUSH SPACE KEY");
@@ -113,6 +114,7 @@ bool sc_title(GameState* gs, Backend* be) {
             gs->score = 0;
             gs_load_level(gs);
             gs_set_scene(gs, sc_start_level, 2);
+            sg_stop(gs->sound);
             break;
         case KD_F2:
             sg_toggle_mute(gs->sound);
@@ -130,8 +132,6 @@ bool sc_title(GameState* gs, Backend* be) {
             break;
     }
 
-    sg_play(gs->sound, 1);
-
     return true;
 }
 
@@ -144,6 +144,7 @@ bool sc_start_level(GameState* gs, Backend* be) {
 
     if (phase == 1.0f) {
         gs_set_scene(gs, sc_playing, 0);
+        sg_stop(gs->sound);
         sg_play(gs->sound, 3);
     }
 
@@ -174,6 +175,7 @@ bool sc_playing(GameState* gs, Backend* be) {
             break;
         case KD_ESC:
             gs_set_scene(gs, sc_paused, 0);
+            sg_stop(gs->sound);
             sg_play(gs->sound, 4);
             break;
         case KD_F1:
@@ -205,6 +207,7 @@ bool sc_paused(GameState* gs, Backend* be) {
         case KD_SPC:
         case KD_ESC:
             gs_set_scene(gs, sc_playing, 0);
+            sg_stop(gs->sound);
             sg_play(gs->sound, 3);
             break;
         case KD_F1:
