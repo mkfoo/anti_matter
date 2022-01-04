@@ -128,6 +128,8 @@ void gs_post_update(GameState* gs) {
         destroy_sprite(anti);
         destroy_sprite(matter);
         gs_set_scene(gs, sc_death1, 2);
+        sg_stop(gs->sound);
+        sg_play(gs->sound, 6);
         return;
     } 
 
@@ -136,6 +138,7 @@ void gs_post_update(GameState* gs) {
 
         if (gs->to_clear <= 0 && !los) {
             gs_set_scene(gs, sc_level_clear, 0);
+            sg_stop(gs->sound);
             return;
         }
     }
@@ -167,6 +170,7 @@ void gs_move_pcs(GameState* gs, int8_t dx, int8_t dy) {
         if (can_move_both(&gs->adj_a, &gs->adj_m)) {
             move_sprite(anti, &gs->adj_a, backward);
             move_sprite(matter, &gs->adj_m, forward);
+            sg_play(gs->sound, 5);
         }
     }
 }
@@ -266,12 +270,15 @@ void check_overlap(GameState* gs, Sprite* s1, Sprite* s2) {
             s1->tile = 41;
             s2->tile = 41;
             gs_set_scene(gs, sc_death2, 2);
+            sg_stop(gs->sound);
+            sg_play(gs->sound, 7);
         } else {
             gs->to_clear -= 2;
             gs_score(gs, 160);
             gs_set_scene(gs, sc_wait, 1);
             destroy_sprite(s1);
             destroy_sprite(s2);
+            sg_play(gs->sound, 9);
         }
     }
 }

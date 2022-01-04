@@ -237,6 +237,7 @@ bool sc_wait(GameState* gs, Backend* be) {
 bool sc_level_clear(GameState* gs, Backend* be) {
     gs_render_sprites(gs, be);
     gs_render_default(gs, be);
+    sg_play(gs->sound, 10);
     gs->energy -= 8;
 
     if (gs->energy > 0) {
@@ -285,8 +286,10 @@ bool sc_death2(GameState* gs, Backend* be) {
 bool sc_game_over(GameState* gs, Backend* be) {
     be_blit_text(be, 64, 92, "GAME OVER");
     gs_render_default(gs, be);
+    sg_play(gs->sound, 8);
 
     if (gs_phase(gs) == 1.0f) {
+        sg_stop(gs->sound);
         gs_set_scene(gs, sc_title_anim, 2);
     }
 

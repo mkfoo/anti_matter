@@ -102,12 +102,12 @@ SoundGen* sg_init(void) {
     self->buf = calloc(BUF_LEN, sizeof(int16_t));
     assert(self->buf != NULL);
     self->midi = ms_init();
-    self->chans[0].osc_period = PTAB[60];
-    self->chans[1].osc_period = PTAB[60];
-    self->chans[2].osc_period = PTAB[60];
-    self->chans[0].rng_state = RNG_SEED;
-    self->chans[1].rng_state = RNG_SEED;
-    self->chans[2].rng_state = RNG_SEED;
+    
+    for (size_t c = 0; c < 3; c++) {
+        self->chans[c].osc_period = PTAB[60];
+        self->chans[c].rng_state = RNG_SEED;
+    }
+
     return self;
 }
 
@@ -115,13 +115,18 @@ void sg_play(SoundGen* self, uint16_t track_id) {
     if (!self->midi->playing) {
         ms_play_track(self->midi, track_id);
     }
+
+    for (size_t c = 0; c < 3; c++) {
+        self->chans[c].rng_period = 0;
+    }
 }
 
 void sg_stop(SoundGen* self) {
     ms_stop(self->midi);
-    self->chans[0].vel = 0;
-    self->chans[1].vel = 0;
-    self->chans[2].vel = 0;
+
+    for (size_t c = 0; c < 3; c++) {
+        self->chans[c].vel = 0;
+    }
 }
 
 void sg_generate(SoundGen* self, Backend* be, uint32_t lag) {
