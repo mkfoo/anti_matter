@@ -171,7 +171,10 @@ bool sc_playing(GameState* gs, Backend* be) {
             gs_move_pcs(gs, 0, 1);
             break;
         case KD_SPC:
-            gs_swap_sprites(gs);
+            gs_set_scene(gs, sc_swap, 1);
+            sg_play(gs->sound, 11);
+            gs->sprites[ID_ANTI].tile += 4;
+            gs->sprites[ID_MATTER].tile += 4;
             break;
         case KD_ESC:
             gs_set_scene(gs, sc_paused, 0);
@@ -229,6 +232,25 @@ bool sc_wait(GameState* gs, Backend* be) {
 
     if (gs_phase(gs) == 1.0f) {
         gs_set_scene(gs, sc_playing, 0);
+    } 
+
+    return true;
+}
+
+bool sc_swap(GameState* gs, Backend* be) {
+    static bool swapped = false;
+    gs_render_sprites(gs, be);
+    gs_render_default(gs, be);
+
+    if (gs_phase(gs) >= 0.5f && !swapped) {
+        gs_swap_sprites(gs);
+        gs->energy -= 160;
+        swapped = true;
+    } else if (gs_phase(gs) == 1.0f) {
+        gs->sprites[ID_ANTI].tile -= 4;
+        gs->sprites[ID_MATTER].tile -= 4;
+        gs_set_scene(gs, sc_playing, 0);
+        swapped = false;
     } 
 
     return true;
