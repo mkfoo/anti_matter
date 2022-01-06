@@ -80,6 +80,7 @@ bool sc_title_anim(GameState* gs, Backend* be) {
 }
 
 bool sc_title_move(GameState* gs, Backend* be) {
+    be_get_event(be);
     float phase = gs_phase(gs);
     int x0 = 64;
     int y0 = 88;
@@ -136,6 +137,7 @@ bool sc_title(GameState* gs, Backend* be) {
 }
 
 bool sc_start_level(GameState* gs, Backend* be) {
+    be_get_event(be);
     sg_play(gs->sound, 2);
     gs_render_sprites(gs, be);
     float phase = gs_phase(gs);
@@ -227,6 +229,7 @@ bool sc_paused(GameState* gs, Backend* be) {
 }
 
 bool sc_wait(GameState* gs, Backend* be) {
+    be_get_event(be);
     gs_render_sprites(gs, be);
     gs_render_default(gs, be);
 
@@ -238,6 +241,7 @@ bool sc_wait(GameState* gs, Backend* be) {
 }
 
 bool sc_swap(GameState* gs, Backend* be) {
+    be_get_event(be);
     static bool swapped = false;
     gs_render_sprites(gs, be);
     gs_render_default(gs, be);
@@ -257,6 +261,7 @@ bool sc_swap(GameState* gs, Backend* be) {
 }
 
 bool sc_level_clear(GameState* gs, Backend* be) {
+    be_get_event(be);
     gs_render_sprites(gs, be);
     gs_render_default(gs, be);
     sg_play(gs->sound, 10);
@@ -275,6 +280,7 @@ bool sc_level_clear(GameState* gs, Backend* be) {
 }
 
 bool sc_death1(GameState* gs, Backend* be) {
+    be_get_event(be);
     gs_render_sprites(gs, be);
     gs_render_default(gs, be);
 
@@ -286,6 +292,7 @@ bool sc_death1(GameState* gs, Backend* be) {
 }
 
 bool sc_death2(GameState* gs, Backend* be) {
+    be_get_event(be);
     float phase = gs_phase(gs);
     int color = 15;
 
@@ -306,6 +313,7 @@ bool sc_death2(GameState* gs, Backend* be) {
 }
 
 bool sc_game_over(GameState* gs, Backend* be) {
+    be_get_event(be);
     be_blit_text(be, 64, 92, "GAME OVER");
     gs_render_default(gs, be);
     sg_play(gs->sound, 8);
