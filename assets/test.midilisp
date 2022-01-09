@@ -1,0 +1,160 @@
+(include "default" "notenames" "rand")
+(define rand (seed-rand xorshift 0xabcd))
+(set fmt 2)
+
+; beep
+(cc7 80 63)
+(rest 1)
+(note E6 1 64 20)
+(rest 1)
+
+; theme
+(set trk 1)
+(cc7 80 44)
+(define st-note (init-st))
+(50 (st-note (+ E2 (* 12 (rand 0 4))) 4 4 64))
+
+(set chn 1)
+(define st-note (init-st))
+(cc7 80 44)
+(100 (st-note (+ E3 (* 12 (rand 0 3))) 8 8 64))
+
+(set chn 2)
+(cc7 80 44)
+(200 (note (+ E3 (* 12 (rand 0 4))) 16 16 64))
+
+; start
+(set trk 2)
+(set chn 0)
+(cc7 80 68)
+(on E2 0 64)
+(pitch 8160)
+(set chn 1)
+(cc7 80 68)
+(on E2 0 64)
+(pitch 8168)
+(set chn 2)
+(cc7 80 80)
+(on E1 0 64)
+(10 (rest 1))
+(off E2 0 0)
+
+; bg
+(set trk 3)
+(set chn 1)
+(cc7 80 127)
+(on E2 0 12)
+(pitch 8160)
+(set chn 2)
+(cc7 80 127)
+(on E2 0 12)
+
+; pause
+(set trk 4)
+(set chn 0)
+(cc7 80 50)
+(note C5 16 16 64)
+(note E5 16 16 64)
+(note C5 16 16 64)
+(note E5 16 16 64)
+(note G5 8 8 64)
+
+; move
+(set trk 5)
+(set chn 0)
+(cc7 80 99)
+(cc7 81 6)
+(note C5 16 16 48)
+
+; death1
+(set trk 6)
+
+(define pb
+    (lambda (val)
+        (pitch-bend chn val)))
+
+(define cc
+    (lambda (val)
+        (control-change chn 81 val)))
+
+(set chn 0)
+(cc7 80 55)
+(note C7 0 4 96)
+(ramp 44 10000 4 0 pb)
+(rest 8)
+(set chn 1)
+(cc7 80 55)
+(note C7 0 4 60)
+(ramp 44 10000 4 0 pb)
+(rest 8)
+(set chn 2)
+(cc7 80 55)
+(note C7 0 4 24)
+(ramp 44 10000 4 0 pb)
+(rest 8)
+(set chn 0)
+(note C7 0 4 10)
+(ramp 44 10000 4 0 pb)
+(rest 8)
+
+; death2
+(set trk 7)
+(set chn 0)
+(cc7 80 63)
+(note C5 0 1 45)
+(ramp 44 1 4 1 cc)
+(set chn 1)
+(cc7 80 63)
+(note C5 0 1 35)
+(ramp 44 16 4 1 cc)
+(set chn 2)
+(cc7 80 63)
+(note C5 0 1 35)
+(ramp 44 32 4 1 cc)
+
+; game over
+(set trk 8)
+(cc7 80 104)
+(define st-note (init-st))
+(10 (st-note (+ E2 (* 12 (rand 0 4))) 4 4 64))
+(st-note E2 1 1 64)
+
+(set chn 1)
+(define st-note (init-st))
+(cc7 80 104)
+(20 (st-note (+ E3 (* 12 (rand 0 3))) 8 8 64))
+(st-note E3 1 1 64)
+
+(set chn 2)
+(cc7 80 104)
+(40 (note (+ E3 (* 12 (rand 0 4))) 16 16 64))
+(note E4 1 1 64)
+
+; destroy
+(set trk 9)
+(set chn 0)
+(cc7 80 74)
+(note C3 0 2 96)
+(ramp 64 6000 8 0 pb)
+(adv-clock trk 64)
+(ramp 64 6000 8 0 pb)
+(adv-clock trk 64)
+(ramp 64 6000 8 0 pb)
+
+; level clear
+(set trk 10)
+(set chn 0)
+(cc7 80 32)
+(16
+    (note E5 32 32 80))
+
+; swap
+(set trk 11)
+(set chn 0)
+(cc7 80 40)
+(note C5 0 4 80)
+(ramp 44 10000 4 0 pb)
+(adv-clock trk 48)
+(cc7 80 88)
+(note A3 0 4 80)
+(ramp 44 7384 4 0 pb)

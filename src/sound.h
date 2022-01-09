@@ -18,6 +18,7 @@ typedef struct {
 
 typedef struct {
     int16_t vol;
+    int16_t prev_vol;
     int16_t* buf;
     MidiSeq* midi;
     Channel chans[3]; 

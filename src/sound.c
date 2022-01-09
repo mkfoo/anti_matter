@@ -99,6 +99,7 @@ SoundGen* sg_init(void) {
     SoundGen* self = calloc(1, sizeof(SoundGen));
     assert(self != NULL);
     self->vol = MAX_VOL / 2;
+    self->prev_vol = MAX_VOL / 2;
     self->buf = calloc(BUF_LEN, sizeof(int16_t));
     assert(self->buf != NULL);
     self->midi = ms_init();
@@ -172,9 +173,10 @@ void sg_change_vol(SoundGen* self, int16_t delta) {
 
 void sg_toggle_mute(SoundGen* self) {
     if (self->vol != 0) {
+        self->prev_vol = self->vol;
         self->vol = 0;
     } else {
-        self->vol = MAX_VOL / 2;
+        self->vol = self->prev_vol;
     }
 }
 

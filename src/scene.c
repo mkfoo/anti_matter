@@ -270,6 +270,7 @@ bool sc_level_clear(GameState* gs, Backend* be) {
     if (gs->energy > 0) {
         gs_score(gs, 1);
     } else {
+        sg_stop(gs->sound);
         gs->energy = 0;
         gs->level = (int16_t) (gs->level + 1) % MAX_LEVEL;
         gs_load_level(gs);
