@@ -115,19 +115,25 @@ SoundGen* sg_init(void) {
 void sg_play(SoundGen* self, uint16_t track_id) {
     if (!self->midi->playing) {
         ms_play_track(self->midi, track_id);
-    }
 
-    for (size_t c = 0; c < 3; c++) {
-        self->chans[c].rng_period = 0;
+        for (size_t c = 0; c < 3; c++) {
+            self->chans[c].rng_period = 0;
+        }
     }
 }
 
 void sg_stop(SoundGen* self) {
-    ms_stop(self->midi);
+    if (self->midi->playing) {
+        ms_stop(self->midi);
+    }
 
     for (size_t c = 0; c < 3; c++) {
         self->chans[c].vel = 0;
     }
+}
+
+bool sg_is_playing(SoundGen* self) {
+    return self->midi->playing;
 }
 
 void sg_generate(SoundGen* self, Backend* be, uint32_t lag) {

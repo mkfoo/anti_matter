@@ -30,7 +30,8 @@ void lose_life(GameState* gs) {
         gs_load_level(gs);
         gs_set_scene(gs, sc_start_level, 2);
     } else {
-        gs_set_scene(gs, sc_game_over, 5);
+        gs_set_scene(gs, sc_game_over, 0);
+        sg_play(gs->sound, 8);
     }
 }
 
@@ -261,6 +262,7 @@ bool sc_swap(GameState* gs, Backend* be) {
 }
 
 bool sc_level_clear(GameState* gs, Backend* be) {
+    static int32_t gain = 0;
     be_get_event(be);
     gs_render_sprites(gs, be);
     gs_render_default(gs, be);
@@ -269,9 +271,30 @@ bool sc_level_clear(GameState* gs, Backend* be) {
 
     if (gs->energy > 0) {
         gs_score(gs, 1);
+        gain++;
     } else {
         sg_stop(gs->sound);
         gs->energy = 0;
+        int32_t bonus = gs->score / BONUS_LIMIT - (gs->score - gain) / BONUS_LIMIT;
+
+        if (bonus > 0) {
+            gs->lives += bonus;
+            sg_play(gs->sound, 12);
+        }
+
+        gs_set_scene(gs, sc_clear_wait, 2);
+        gain = 0;
+    }
+
+    return true;
+}
+
+bool sc_clear_wait(GameState* gs, Backend* be) {
+    be_get_event(be);
+    gs_render_sprites(gs, be);
+    gs_render_default(gs, be);
+
+    if (gs_phase(gs) == 1.0f) {
         gs->level = (int16_t) (gs->level + 1) % MAX_LEVEL;
         gs_load_level(gs);
         gs_set_scene(gs, sc_start_level, 2);
@@ -284,6 +307,11 @@ bool sc_death1(GameState* gs, Backend* be) {
     be_get_event(be);
     gs_render_sprites(gs, be);
     gs_render_default(gs, be);
+
+    if (gs_phase(gs) > 0.6f) {
+        gs->sprites[ID_ANTI].flags |= F_NIL;
+        gs->sprites[ID_MATTER].flags |= F_NIL;
+    }
 
     if (gs_phase(gs) == 1.0f) {
         lose_life(gs);
@@ -317,10 +345,8 @@ bool sc_game_over(GameState* gs, Backend* be) {
     be_get_event(be);
     be_blit_text(be, 64, 92, "GAME OVER");
     gs_render_default(gs, be);
-    sg_play(gs->sound, 8);
 
-    if (gs_phase(gs) == 1.0f) {
-        sg_stop(gs->sound);
+    if (!sg_is_playing(gs->sound)) {
         gs_set_scene(gs, sc_title_anim, 2);
     }
 

@@ -27,6 +27,7 @@ typedef struct {
 SoundGen* sg_init(void);
 void sg_play(SoundGen* self, uint16_t track_id);
 void sg_stop(SoundGen* self);
+bool sg_is_playing(SoundGen* self);
 void sg_generate(SoundGen* self, Backend* be, uint32_t lag);
 void sg_change_vol(SoundGen* self, int16_t delta);
 void sg_toggle_mute(SoundGen* self); 

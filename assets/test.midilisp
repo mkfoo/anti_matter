@@ -10,18 +10,46 @@
 
 ; theme
 (set trk 1)
-(cc7 80 44)
+(set chn 0)
 (define st-note (init-st))
-(50 (st-note (+ E2 (* 12 (rand 0 4))) 4 4 64))
+(cc7 80 44)
+
+(define st-arp
+    (lambda (d n)
+        (d (st-note (+ n (* 12 (rand 0 4))) d d 64))))
+
+(define arp
+    (lambda (d n)
+        (d (note (+ n (* 12 (rand 0 4))) d d 64))))
+
+(4 (st-arp 16 E3))
+(2 (st-arp 16 G3))
+(2 (st-arp 16 D3))
+(2 (st-arp 16 A3))
+(2 (st-arp 16 G#3))
+(4 (st-arp 16 A3))
 
 (set chn 1)
-(define st-note (init-st))
+(set st-note (init-st))
 (cc7 80 44)
-(100 (st-note (+ E3 (* 12 (rand 0 3))) 8 8 64))
+(4 (st-arp 8 E2))
+(2 (st-arp 8 B2))
+(2 (st-arp 8 B2))
+(2 (st-arp 8 C#3))
+(2 (st-arp 8 E3))
+(4 (st-arp 8 E3))
 
 (set chn 2)
-(cc7 80 44)
-(200 (note (+ E3 (* 12 (rand 0 4))) 16 16 64))
+(cc7 80 65)
+(on E2 0 74)
+(4 (rest 1))
+(off E2 0 0)
+(cc7 80 58)
+(2 (arp 4 E2))
+(2 (arp 4 F#2))
+(2 (arp 4 F#2))
+(2 (arp 4 C#2))
+(4 (arp 4 C2))
 
 ; start
 (set trk 2)
@@ -102,59 +130,69 @@
 (set chn 0)
 (cc7 80 63)
 (note C5 0 1 45)
-(ramp 44 1 4 1 cc)
+(ramp 52 1 4 1 cc)
 (set chn 1)
 (cc7 80 63)
 (note C5 0 1 35)
-(ramp 44 16 4 1 cc)
+(ramp 52 16 4 1 cc)
 (set chn 2)
 (cc7 80 63)
 (note C5 0 1 35)
-(ramp 44 32 4 1 cc)
+(ramp 52 32 4 1 cc)
 
 ; game over
 (set trk 8)
-(cc7 80 104)
+(cc7 80 55)
 (define st-note (init-st))
-(10 (st-note (+ E2 (* 12 (rand 0 4))) 4 4 64))
-(st-note E2 1 1 64)
+(10 (st-note (+ E3 (* 12 (rand 0 3))) 4 4 64))
+(st-note E3 1 1 64)
 
 (set chn 1)
 (define st-note (init-st))
-(cc7 80 104)
-(20 (st-note (+ E3 (* 12 (rand 0 3))) 8 8 64))
-(st-note E3 1 1 64)
+(cc7 80 44)
+(20 (st-note (+ G3 (* 12 (rand 0 3))) 8 8 64))
+(st-note G3 1 1 64)
 
 (set chn 2)
-(cc7 80 104)
-(40 (note (+ E3 (* 12 (rand 0 4))) 16 16 64))
-(note E4 1 1 64)
+(cc7 80 44)
+(40 (note (+ B3 (* 12 (rand 0 3))) 16 16 64))
+(note B3 1 1 64)
+(rest 1)
+(cc7 81 1)
 
 ; destroy
 (set trk 9)
 (set chn 0)
-(cc7 80 74)
-(note C3 0 2 96)
-(ramp 64 6000 8 0 pb)
-(adv-clock trk 64)
-(ramp 64 6000 8 0 pb)
-(adv-clock trk 64)
-(ramp 64 6000 8 0 pb)
+(cc7 80 90)
+(3 
+    (note C3 0 8 80)
+    (ramp 64 5400 8 0 pb)
+    (rest 8))
 
 ; level clear
 (set trk 10)
-(set chn 0)
+(set chn 1)
 (cc7 80 32)
-(16
+(8
     (note E5 32 32 80))
 
 ; swap
 (set trk 11)
 (set chn 0)
-(cc7 80 40)
-(note C5 0 4 80)
+(cc7 80 55)
+(note C7 0 4 96)
 (ramp 44 10000 4 0 pb)
-(adv-clock trk 48)
-(cc7 80 88)
-(note A3 0 4 80)
+(adv-clock trk 52)
+(cc7 80 80)
+(note C4 0 4 80)
 (ramp 44 7384 4 0 pb)
+
+; 1up
+(set trk 12)
+(set chn 0)
+(cc7 80 63)
+(2
+    (note E4 16 16 50)
+    (note G#4 16 16 50)
+    (note B4 16 16 50))
+
