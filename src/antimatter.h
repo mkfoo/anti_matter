@@ -1,7 +1,7 @@
 #pragma once
 
 #define ANIM_SPEED 0.0012f
-#define BONUS_LIMIT 400
+#define BONUS_LIMIT 4800
 #define BUF_LEN 4096
 #define CHARS_PER_ROW 20
 #define DECOR_TILE_BASE 70
@@ -20,6 +20,8 @@
 #define MS_PER_TICK 6
 #define SAMPLE_RATE 44100
 #define SAMPLES_PER_TICK 200
+#define START_LEVEL 0
+#define START_LIVES 4
 #define TEXTURE_PATH "assets/graphics.bmp"
 #define TILES_PER_ROW 10
 #define TILE_H 16

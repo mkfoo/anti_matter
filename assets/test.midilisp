@@ -1,5 +1,5 @@
 (include "default" "notenames" "rand")
-(define rand (seed-rand xorshift 0xabcd))
+(define rand (seed-rand xorshift 0xfabeeb))
 (set fmt 2)
 
 ; beep
@@ -12,44 +12,39 @@
 (set trk 1)
 (set chn 0)
 (define st-note (init-st))
-(cc7 80 44)
 
 (define st-arp
     (lambda (d n)
         (d (st-note (+ n (* 12 (rand 0 4))) d d 64))))
 
-(define arp
-    (lambda (d n)
-        (d (note (+ n (* 12 (rand 0 4))) d d 64))))
+(define trp
+    (lambda (n)
+        (+ (- n (% n 12)) (% (+ n 7) 12))))
 
+(define bn G3)
+(cc7 80 44)
 (4 (st-arp 16 E3))
-(2 (st-arp 16 G3))
-(2 (st-arp 16 D3))
-(2 (st-arp 16 A3))
-(2 (st-arp 16 G#3))
-(4 (st-arp 16 A3))
+(12 (set bn (trp bn)) (2 (st-arp 16 bn)))
+(3 (st-arp 16 bn))
 
 (set chn 1)
-(set st-note (init-st))
+(set bn B2)
 (cc7 80 44)
+(set st-note (init-st))
 (4 (st-arp 8 E2))
-(2 (st-arp 8 B2))
-(2 (st-arp 8 B2))
-(2 (st-arp 8 C#3))
-(2 (st-arp 8 E3))
-(4 (st-arp 8 E3))
+(12 (set bn (trp bn)) (2 (st-arp 8 bn)))
+(3 (st-arp 8 bn))
 
 (set chn 2)
 (cc7 80 65)
 (on E2 0 74)
 (4 (rest 1))
 (off E2 0 0)
+(set bn E2)
 (cc7 80 58)
-(2 (arp 4 E2))
-(2 (arp 4 F#2))
-(2 (arp 4 F#2))
-(2 (arp 4 C#2))
-(4 (arp 4 C2))
+(set st-note (init-st))
+(12 (set bn (trp bn)) (2 (st-arp 4 bn)))
+(3 (st-arp 4 bn))
 
 ; start
 (set trk 2)
@@ -141,23 +136,32 @@
 (ramp 52 32 4 1 cc)
 
 ; game over
+(define trpd
+    (lambda (n)
+        (+ (- n (% n 12)) (% (- n 7) 12))))
+
 (set trk 8)
-(cc7 80 55)
+(set chn 0)
+(cc7 80 120)
+(define bn B3)
 (define st-note (init-st))
-(10 (st-note (+ E3 (* 12 (rand 0 3))) 4 4 64))
-(st-note E3 1 1 64)
+(4 (set bn (trpd bn)) (st-arp 16 bn))
+(st-note G4 1 1 64)
 
 (set chn 1)
+(cc7 80 80)
+(define bn G3)
 (define st-note (init-st))
-(cc7 80 44)
-(20 (st-note (+ G3 (* 12 (rand 0 3))) 8 8 64))
-(st-note G3 1 1 64)
+(4 (set bn (trpd bn)) (st-arp 8 bn))
+(st-note B3 1 1 64)
 
 (set chn 2)
-(cc7 80 44)
-(40 (note (+ B3 (* 12 (rand 0 3))) 16 16 64))
-(note B3 1 1 64)
-(rest 1)
+(cc7 80 80)
+(define bn E3)
+(define st-note (init-st))
+(4 (set bn (trpd bn)) (st-arp 8 bn))
+(st-note G3 1 1 64)
+(7 (rest 1))
 (cc7 81 1)
 
 ; destroy

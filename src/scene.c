@@ -111,12 +111,8 @@ bool sc_title(GameState* gs, Backend* be) {
 
     switch(be_get_event(be)) {
         case KD_SPC:
-            gs->level = 0;
-            gs->lives = 4;
-            gs->score = 0;
-            gs_load_level(gs);
-            gs_set_scene(gs, sc_start_level, 2);
-            sg_stop(gs->sound);
+            gs_set_scene(gs, sc_fade_out, 2);
+            gs->sound->prev_vol = gs->sound->vol;
             break;
         case KD_F2:
             sg_toggle_mute(gs->sound);
@@ -132,6 +128,28 @@ bool sc_title(GameState* gs, Backend* be) {
             return false;
         default:
             break;
+    }
+
+    return true;
+}
+
+bool sc_fade_out(GameState* gs, Backend* be) {
+    float phase = gs_phase(gs);
+    be_get_event(be);
+    render_title(be, 64, 56);
+
+    if (((int) (phase * 100.0f)) % 5 == 0) {
+        sg_change_vol(gs->sound, -1);
+    }
+
+    if (phase == 1.0f) {
+        gs->level = START_LEVEL;
+        gs->lives = START_LIVES;
+        gs->score = 0;
+        gs_load_level(gs);
+        gs_set_scene(gs, sc_start_level, 2);
+        sg_stop(gs->sound);
+        sg_toggle_mute(gs->sound);
     }
 
     return true;

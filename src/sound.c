@@ -137,32 +137,30 @@ bool sg_is_playing(SoundGen* self) {
 }
 
 void sg_generate(SoundGen* self, Backend* be, uint32_t lag) {
-    if (self->vol > 0) {
-        size_t smpls = ceil(SAMPLE_RATE / 1000.0f * (float) lag);
-        if (smpls > BUF_LEN) smpls = BUF_LEN;
-        MidiEvent event;
-        int16_t out;
+    size_t smpls = ceil(SAMPLE_RATE / 1000.0f * (float) lag);
+    if (smpls > BUF_LEN) smpls = BUF_LEN;
+    MidiEvent event;
+    int16_t out;
 
-        for (size_t i = 0; i < smpls; i++) {
-            do {
-                event = ms_advance(self->midi);
-                handle_midi_event(self, event);
-            } while (event.status);
+    for (size_t i = 0; i < smpls; i++) {
+        do {
+            event = ms_advance(self->midi);
+            handle_midi_event(self, event);
+        } while (event.status);
 
-            out = 0;
+        out = 0;
 
-            for (size_t c = 0; c < 3; c++) {
-                advance_env(&self->chans[c], i);
-                advance_rng(&self->chans[c], i);
-                out += gen_sample(&self->chans[c]);
-            }
-
-            self->buf[i] = out * self->vol;
+        for (size_t c = 0; c < 3; c++) {
+            advance_env(&self->chans[c], i);
+            advance_rng(&self->chans[c], i);
+            out += gen_sample(&self->chans[c]);
         }
 
-        uint32_t len = smpls * sizeof(int16_t);
-        be_queue_audio(be, self->buf, len);
+        self->buf[i] = out * self->vol;
     }
+
+    uint32_t len = smpls * sizeof(int16_t);
+    be_queue_audio(be, self->buf, len);
 }
 
 void sg_change_vol(SoundGen* self, int16_t delta) {
