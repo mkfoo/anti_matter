@@ -267,7 +267,7 @@ bool sc_swap(GameState* gs, Backend* be) {
 
     if (gs_phase(gs) >= 0.5f && !swapped) {
         gs_swap_sprites(gs);
-        gs->energy -= 160;
+        gs->energy -= SWAP_COST;
         swapped = true;
     } else if (gs_phase(gs) == 1.0f) {
         gs->sprites[ID_ANTI].tile -= 4;

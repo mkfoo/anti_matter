@@ -22,6 +22,7 @@
 #define SAMPLES_PER_TICK 200
 #define START_LEVEL 0
 #define START_LIVES 4
+#define SWAP_COST 400
 #define TEXTURE_PATH "assets/graphics.bmp"
 #define TILES_PER_ROW 10
 #define TILE_H 16
