@@ -1,18 +1,18 @@
 #include "scene.h"
 #include "sprite.h"
 
-void render_title(Backend* be, int x0, int y);
-void fade_effect(Backend* be, float phase, int color);
-void lose_life(GameState* gs);
+static void render_title(Backend* be, int x0, int y);
+static void fade_effect(Backend* be, float phase, int color);
+static void lose_life(GameState* gs);
 
-void render_title(Backend* be, int x0, int y) {
+static void render_title(Backend* be, int x0, int y) {
     for (int i = 0; i < 8; i++) {
         int x = x0 + i * TILE_W;
         be_blit_tile(be, x, y, 62 + i);
     }
 }
 
-void fade_effect(Backend* be, float phase, int color) {
+static void fade_effect(Backend* be, float phase, int color) {
     int m = (int) (192.0f / powf(2, phase * 7.0f));
 
     for (int i = 8; i < 184; i++) {
@@ -23,7 +23,7 @@ void fade_effect(Backend* be, float phase, int color) {
     }
 }
 
-void lose_life(GameState* gs) {
+static void lose_life(GameState* gs) {
     gs->lives -= 1;
 
     if (gs->lives > 0) {

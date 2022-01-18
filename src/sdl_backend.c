@@ -1,10 +1,9 @@
 #include "backend.h"
 
-Event be_get_keydown(Backend* be, SDL_Keycode key);
-Event be_get_keyup(SDL_Keycode key);
-void be_toggle_fullscreen(Backend* be);
-void be_toggle_scale(Backend* be);
-void log_error(void);
+static Event be_get_keydown(Backend* be, SDL_Keycode key);
+static void be_toggle_fullscreen(Backend* be);
+static void be_toggle_scale(Backend* be);
+static void log_error(void);
 
 const SDL_Color COLORS[16] = {
     {0x00, 0x00, 0x00, 0x00}, // TRANSPARENT
@@ -133,7 +132,7 @@ Event be_get_event(Backend* be) {
     return IDLE;
 }
 
-Event be_get_keydown(Backend* be, SDL_Keycode key) {
+static Event be_get_keydown(Backend* be, SDL_Keycode key) {
     switch (key) {
         case SDLK_F10:
             return QUIT;
@@ -214,7 +213,7 @@ void be_draw_line(Backend* be, int x1, int y1, int x2, int y2, int color) {
     SDL_RenderDrawLine(be->ren, x1, y1, x2, y2);
 }
 
-void be_toggle_fullscreen(Backend* be) {
+static void be_toggle_fullscreen(Backend* be) {
     if (SDL_GetWindowFlags(be->win) & SDL_WINDOW_FULLSCREEN) {
         SDL_SetWindowDisplayMode(be->win, NULL);
         SDL_SetWindowFullscreen(be->win, 0);
@@ -223,7 +222,7 @@ void be_toggle_fullscreen(Backend* be) {
     }
 }
 
-void be_toggle_scale(Backend* be) {
+static void be_toggle_scale(Backend* be) {
     float sx, sy;
     SDL_RenderGetScale(be->ren, &sx, &sy);
 
@@ -261,7 +260,7 @@ void be_delay(uint32_t dur) {
     SDL_Delay(dur);
 }
 
-void log_error(void) {
+static void log_error(void) {
     SDL_LogCritical(SDL_LOG_CATEGORY_ERROR, "%s [file %s, line %d]", SDL_GetError(), __FILE__, __LINE__);
 }
 

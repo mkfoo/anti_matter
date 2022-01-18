@@ -49,35 +49,19 @@ typedef struct {
 } Adjacent;
 
 Delta get_delta(Sprite* self, Sprite* other);
-
 Delta invert_delta(Delta d);
-
 Point calc_point(Point p, Delta d); 
-
 Point calc_tile(Point p, Delta d); 
-
 bool has_flag(Sprite* self, Flag flag);
-
 bool is_moving(Sprite* self);
-
 bool is_aligned(Sprite* self);
-
 bool is_overlapping(Sprite* self, Sprite* other);
-
 bool point_equals(Point p1, Point p2);
-
 bool point_between(Point self, Point p1, Point p2);
-
 bool can_move(Adjacent* a); 
-
 bool can_move_both(Adjacent* a, Adjacent* b); 
-
 bool can_pull(Sprite* self, Sprite* other);
-
 void move_sprite(Sprite* self, Adjacent* a, Delta d);
-
 void push_sprite(Sprite* self, Delta d);
-
 void update_sprite(Sprite* self);
-
 void destroy_sprite(Sprite* self);

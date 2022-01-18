@@ -2,13 +2,10 @@
 #include <stdlib.h>
 #include "sprite.h"
 
-bool should_stop(Sprite* self);
-
-bool num_between(int16_t self, int16_t a, int16_t b);
-
-bool opp_polarity(Sprite* self, Sprite* other);
-
-bool is_identical(Sprite* self, Sprite* other);
+static bool should_stop(Sprite* self);
+static bool num_between(int16_t self, int16_t a, int16_t b);
+static bool opp_polarity(Sprite* self, Sprite* other);
+static bool is_identical(Sprite* self, Sprite* other);
 
 Delta get_delta(Sprite* self, Sprite* other) {
     int16_t x = other->p.x - self->p.x; 
@@ -66,22 +63,6 @@ bool is_overlapping(Sprite* self, Sprite* other) {
                 point_equals(self->p, other->p));
 }
 
-bool is_identical(Sprite* self, Sprite* other) {
-    return self == other && !has_flag(self, F_NIL);
-}
-
-bool num_between(int16_t self, int16_t a, int16_t b) {
-    if (a < b) {
-        return self > a && self < b;
-    } 
-
-    if (b < a) {
-        return self > b && self < a;
-    }
-
-    return false;
-}
-
 bool point_between(Point self, Point p1, Point p2) {
     if (self.x == p1.x && p1.x == p2.x) {
         return num_between(self.y, p1.y, p2.y);
@@ -94,10 +75,6 @@ bool point_between(Point self, Point p1, Point p2) {
     return false;
 }
 
-bool opp_polarity(Sprite* self, Sprite* other) {
-    return has_flag(self, F_POLARITY) ^ has_flag(other, F_POLARITY);
-}
-
 bool can_move(Adjacent* a) {
     return has_flag(a->front, F_NIL) || 
         (has_flag(a->front, F_MOVABLE) && 
@@ -108,12 +85,11 @@ bool can_move(Adjacent* a) {
 
 bool can_move_both(Adjacent* a, Adjacent* b) {
     return (can_move(a) && can_move(b)) &&
-            (!is_identical(a->front, b->next) && 
-                !is_identical(a->next, b->front)) &&
-                    (!point_equals(a->next_p, b->next_p) || 
-                        (opp_polarity(a->front, b->front) ||
-                            (has_flag(a->front, F_NIL) ||
-                                has_flag(b->front, F_NIL))));
+            !is_identical(a->front, b->next) && 
+                (!point_equals(a->next_p, b->next_p) || 
+                    (opp_polarity(a->front, b->front) ||
+                        (has_flag(a->front, F_NIL) ||
+                            has_flag(b->front, F_NIL))));
 }
 
 bool can_pull(Sprite* self, Sprite* other) {
@@ -153,7 +129,27 @@ void destroy_sprite(Sprite* self) {
     }
 }
 
-bool should_stop(Sprite* self) {
+static bool should_stop(Sprite* self) {
     return (self->d.x != 0 && self->p.x % TILE_W == 0)
         || (self->d.y != 0 && self->p.y % TILE_H == 0);
+}
+
+static bool num_between(int16_t self, int16_t a, int16_t b) {
+    if (a < b) {
+        return self > a && self < b;
+    } 
+
+    if (b < a) {
+        return self > b && self < a;
+    }
+
+    return false;
+}
+
+static bool opp_polarity(Sprite* self, Sprite* other) {
+    return has_flag(self, F_POLARITY) ^ has_flag(other, F_POLARITY);
+}
+
+static bool is_identical(Sprite* self, Sprite* other) {
+    return self == other && !has_flag(self, F_NIL);
 }

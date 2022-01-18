@@ -22,19 +22,19 @@ MidiFile load_test_midi(void) {
     return (MidiFile) { data, len };
 }
 
-MidiReader* reader_init(MidiFile file);
-uint8_t read_u8(MidiReader* self);
-uint16_t read_u16(MidiReader* self);
-uint32_t read_u32(MidiReader* self);
-uint32_t read_var_len(MidiReader* self);
-void scan_for_tracks(MidiReader* self);
-void set_track(MidiReader* self, uint16_t track_id);
-TrackEvent read_event(MidiReader* self);
-MidiEvent read_cvm(MidiReader* self, uint8_t byte1);
-MidiEvent read_meta(MidiReader* self);
-void reader_quit(MidiReader* self);
+static MidiReader* reader_init(MidiFile file);
+static uint8_t read_u8(MidiReader* self);
+static uint16_t read_u16(MidiReader* self);
+static uint32_t read_u32(MidiReader* self);
+static uint32_t read_var_len(MidiReader* self);
+static void scan_for_tracks(MidiReader* self);
+static void set_track(MidiReader* self, uint16_t track_id);
+static TrackEvent read_event(MidiReader* self);
+static MidiEvent read_cvm(MidiReader* self, uint8_t byte1);
+static MidiEvent read_meta(MidiReader* self);
+static void reader_quit(MidiReader* self);
 
-MidiReader* reader_init(MidiFile file) {
+static MidiReader* reader_init(MidiFile file) {
     MidiReader* self = calloc(1, sizeof(MidiReader));
     assert(self != NULL);
     self->ptr = file.data;
@@ -52,24 +52,24 @@ MidiReader* reader_init(MidiFile file) {
     return self;
 }
 
-uint8_t read_u8(MidiReader* self) {
+static uint8_t read_u8(MidiReader* self) {
     assert(self->ptr < self->data_end);
     assert(self->ptr < self->track_end);
     return *(self->ptr++);
 }
 
-uint16_t read_u16(MidiReader* self) {
+static uint16_t read_u16(MidiReader* self) {
     return read_u8(self) << 8 | read_u8(self);
 }
 
-uint32_t read_u32(MidiReader* self) {
+static uint32_t read_u32(MidiReader* self) {
     return read_u8(self) << 24 |
            read_u8(self) << 16 |
            read_u8(self) << 8 |
            read_u8(self);
 }
 
-uint32_t read_var_len(MidiReader* self) {
+static uint32_t read_var_len(MidiReader* self) {
     uint8_t byte = read_u8(self);
     uint32_t val = byte & 0x7f;
 
@@ -82,7 +82,7 @@ uint32_t read_var_len(MidiReader* self) {
     return val;
 }
 
-void scan_for_tracks(MidiReader* self) {
+static void scan_for_tracks(MidiReader* self) {
     for (size_t i = 0; i < self->ntrks; i++) {
         assert(read_u32(self) == 0x4d54726b);
         uint32_t t_len = read_u32(self);
@@ -91,7 +91,7 @@ void scan_for_tracks(MidiReader* self) {
     }
 }
 
-void set_track(MidiReader* self, uint16_t track_id) {
+static void set_track(MidiReader* self, uint16_t track_id) {
     assert(track_id < self->ntrks);
     self->ptr = self->tracks[track_id];
     self->status = 0;
@@ -103,7 +103,7 @@ void set_track(MidiReader* self, uint16_t track_id) {
     }
 }
 
-TrackEvent read_event(MidiReader* self) {
+static TrackEvent read_event(MidiReader* self) {
     uint32_t delta = read_var_len(self);
     uint8_t byte0 = read_u8(self);
     MidiEvent event;
@@ -121,7 +121,7 @@ TrackEvent read_event(MidiReader* self) {
     return  (TrackEvent) { delta, event }; 
 }
 
-MidiEvent read_cvm(MidiReader* self, uint8_t byte1) {
+static MidiEvent read_cvm(MidiReader* self, uint8_t byte1) {
     uint8_t data1 = byte1 & 0x7f;
     uint8_t data2 = 0;
 
@@ -144,13 +144,13 @@ MidiEvent read_cvm(MidiReader* self, uint8_t byte1) {
     return (MidiEvent) { self->status, data1, data2 };
 }
 
-MidiEvent read_meta(MidiReader* self) {
+static MidiEvent read_meta(MidiReader* self) {
     uint8_t type = read_u8(self);
     self->ptr += read_var_len(self);
     return (MidiEvent) { type, 0, 0 };
 }
 
-void reader_quit(MidiReader* self) {
+static void reader_quit(MidiReader* self) {
     free(self->tracks);
     free(self);
 }

@@ -4,17 +4,17 @@
 #include "level_data.h"
 #include "scene.h"
 
-void advance(GameState* self);
-void limit_fps(GameState* self);
-void add_sprite(GameState* gs, int16_t x, int16_t y, uint8_t id);
-void set_sprite_pos(GameState* gs, int16_t x, int16_t y, uint8_t id);
-void add_wall(GameState* gs, int16_t x, int16_t y, uint8_t tile);
-void check_overlap(GameState* gs, Sprite* s1, Sprite* s2);
-bool check_los(GameState* gs, Sprite* s1, Sprite* s2);
-void decorate(Backend* be);
-void render_stats(GameState* gs, Backend* be);
-void remove_destroyed(GameState* gs);
-Adjacent find_adjacent(GameState* gs, Sprite* s, Delta d);
+static void advance(GameState* self);
+static void limit_fps(GameState* self);
+static void add_sprite(GameState* gs, int16_t x, int16_t y, uint8_t id);
+static void set_sprite_pos(GameState* gs, int16_t x, int16_t y, uint8_t id);
+static void add_wall(GameState* gs, int16_t x, int16_t y, uint8_t tile);
+static void check_overlap(GameState* gs, Sprite* s1, Sprite* s2);
+static bool check_los(GameState* gs, Sprite* s1, Sprite* s2);
+static void decorate(Backend* be);
+static void render_stats(GameState* gs, Backend* be);
+static void remove_destroyed(GameState* gs);
+static Adjacent find_adjacent(GameState* gs, Sprite* s, Delta d);
 
 GameState* gs_init(void) {
     GameState* gs = calloc(1, sizeof(GameState));
@@ -180,6 +180,25 @@ void gs_render_default(GameState* gs, Backend* be) {
     decorate(be);
 }
 
+void gs_render_help(GameState* gs, Backend* be) {
+    int x = 42;
+    int y = 28;
+    int m = 16;
+
+    if (gs->phase > 0.25) {
+        be_blit_text(be, x + 31, y, "PAUSED");
+    }
+
+    be_blit_text(be, x, y + m * 1, "ESC     RESUME"); 
+    be_blit_text(be, x, y + m * 2, "F1     RESTART");
+    be_blit_text(be, x, y + m * 3, "F2        MUTE"); 
+    be_blit_text(be, x, y + m * 4, "F3       SCALE"); 
+    be_blit_text(be, x, y + m * 5, "F4     FULLSCR"); 
+    be_blit_text(be, x, y + m * 6, "F5       VOL -"); 
+    be_blit_text(be, x, y + m * 7, "F6       VOL +"); 
+    be_blit_text(be, x, y + m * 8, "F10       QUIT"); 
+}
+
 void gs_render_sprites(GameState* gs, Backend* be) {
     int16_t bound_x = MAX_X - TILE_W;
     int16_t bound_y = MAX_Y - TILE_H;
@@ -224,7 +243,7 @@ void gs_score(GameState* gs, int32_t num) {
     }
 }
 
-void advance(GameState* self) {
+static void advance(GameState* self) {
     uint32_t curr = be_get_millis();
     uint32_t lag = curr - self->prev;
     self->phase = fmodf(self->phase + ANIM_SPEED * (float) lag, 1.0f);
@@ -232,7 +251,7 @@ void advance(GameState* self) {
     self->prev = curr;
 }
 
-void limit_fps(GameState* self) {
+static void limit_fps(GameState* self) {
     uint32_t next = self->prev + MS_PER_FRAME;
     uint32_t now = be_get_millis();
 
@@ -241,7 +260,7 @@ void limit_fps(GameState* self) {
     }
 }
 
-void add_sprite(GameState* gs, int16_t x, int16_t y, uint8_t id) {
+static void add_sprite(GameState* gs, int16_t x, int16_t y, uint8_t id) {
     assert(gs->n_sprites < MAX_SPRITES);
     Sprite* s = &gs->sprites[gs->n_sprites];
     *s = PROTOTYPES[id];
@@ -249,13 +268,13 @@ void add_sprite(GameState* gs, int16_t x, int16_t y, uint8_t id) {
     gs->n_sprites++;
 }
 
-void set_sprite_pos(GameState* gs, int16_t x, int16_t y, uint8_t id) {
+static void set_sprite_pos(GameState* gs, int16_t x, int16_t y, uint8_t id) {
     assert(id < gs->n_sprites);
     Sprite* s = &gs->sprites[id];
     s->p = (Point) { x, y }; 
 }
 
-void add_wall(GameState* gs, int16_t x, int16_t y, uint8_t tile) {
+static void add_wall(GameState* gs, int16_t x, int16_t y, uint8_t tile) {
     assert(gs->n_sprites < MAX_SPRITES);
     Sprite* s = &gs->sprites[gs->n_sprites];
     s->p = (Point) { x, y }; 
@@ -264,7 +283,7 @@ void add_wall(GameState* gs, int16_t x, int16_t y, uint8_t tile) {
     gs->n_sprites++;
 }
 
-void check_overlap(GameState* gs, Sprite* s1, Sprite* s2) {
+static void check_overlap(GameState* gs, Sprite* s1, Sprite* s2) {
     if (is_overlapping(s1, s2)) {
         if (has_flag(s1, F_UNSTABLE) || has_flag(s2, F_UNSTABLE)) {
             s1->tile = 41;
@@ -283,7 +302,7 @@ void check_overlap(GameState* gs, Sprite* s1, Sprite* s2) {
     }
 }
 
-bool check_los(GameState* gs, Sprite* s1, Sprite* s2) {
+static bool check_los(GameState* gs, Sprite* s1, Sprite* s2) {
     Delta d = get_delta(s1, s2);
 
     if (d.x == 0 || d.y == 0) {
@@ -303,7 +322,7 @@ bool check_los(GameState* gs, Sprite* s1, Sprite* s2) {
     return false;
 }
 
-void remove_destroyed(GameState* gs) {
+static void remove_destroyed(GameState* gs) {
     for (int i = 3; i < gs->n_sprites; i++) {
         Sprite* s = &gs->sprites[i];
 
@@ -313,7 +332,7 @@ void remove_destroyed(GameState* gs) {
     }
 }
 
-Adjacent find_adjacent(GameState* gs, Sprite* s1, Delta d) {
+static Adjacent find_adjacent(GameState* gs, Sprite* s1, Delta d) {
     Point front = calc_tile(s1->p, d);
     Point back = calc_tile(s1->p, invert_delta(d));
     Point next = calc_tile(front, d);
@@ -335,7 +354,7 @@ Adjacent find_adjacent(GameState* gs, Sprite* s1, Delta d) {
     return adj;
 }
 
-void decorate(Backend* be) {
+static void decorate(Backend* be) {
     uint8_t t = DECOR_TILE_BASE;
     be_blit_tile(be, 0, 0, t);
     be_blit_tile(be, 176, 0, t + 1);
@@ -370,7 +389,7 @@ void decorate(Backend* be) {
     be_blit_tile(be, 197 + 48, 170, 86);
 }
 
-void render_stats(GameState* gs, Backend* be) {
+static void render_stats(GameState* gs, Backend* be) {
     static char level[8], high[8], score[8], energy[8], lives[8];
 
     be_fill_rect(be, 184, 0, 80, 192, 1); 
@@ -393,21 +412,3 @@ void render_stats(GameState* gs, Backend* be) {
     be_blit_text(be, 196, 149, lives); 
 }
 
-void gs_render_help(GameState* gs, Backend* be) {
-    int x = 42;
-    int y = 28;
-    int m = 16;
-
-    if (gs->phase > 0.25) {
-        be_blit_text(be, x + 31, y, "PAUSED");
-    }
-
-    be_blit_text(be, x, y + m * 1, "ESC     RESUME"); 
-    be_blit_text(be, x, y + m * 2, "F1     RESTART");
-    be_blit_text(be, x, y + m * 3, "F2        MUTE"); 
-    be_blit_text(be, x, y + m * 4, "F3       SCALE"); 
-    be_blit_text(be, x, y + m * 5, "F4     FULLSCR"); 
-    be_blit_text(be, x, y + m * 6, "F5       VOL -"); 
-    be_blit_text(be, x, y + m * 7, "F6       VOL +"); 
-    be_blit_text(be, x, y + m * 8, "F10       QUIT"); 
-}

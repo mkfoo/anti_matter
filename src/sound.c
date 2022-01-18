@@ -21,31 +21,31 @@ const int32_t PTAB[128] = {
     1054, 994, 939, 886, 836, 789, 745, 703, 664, 626, 591, 558, 527, 497, 469, 443, 418, 395, 372, 352,
 };
 
-void reset_env(Channel* self);
-void advance_env(Channel* self, size_t i);
-void advance_rng(Channel* self, size_t i);
-int16_t gen_sample(Channel* self);
-void handle_midi_event(SoundGen* self, MidiEvent e);
-void handle_cc(SoundGen* self, uint8_t chn, uint8_t cc, uint8_t val);
+static void reset_env(Channel* self);
+static void advance_env(Channel* self, size_t i);
+static void advance_rng(Channel* self, size_t i);
+static int16_t gen_sample(Channel* self);
+static void handle_midi_event(SoundGen* self, MidiEvent e);
+static void handle_cc(SoundGen* self, uint8_t chn, uint8_t cc, uint8_t val);
 
-void reset_env(Channel* self) {
+static void reset_env(Channel* self) {
     self->env_phase = (self->env_step < 0) * ENV_PERIOD;
 }
 
-void advance_env(Channel* self, size_t i) {
+static void advance_env(Channel* self, size_t i) {
     int32_t next = self->env_phase + self->env_step;
     bool cond = (0 <= next && next <= ENV_PERIOD) && (i % ENV_RATE == 0);
     self->env_phase += self->env_step * cond;
 }
 
-void advance_rng(Channel* self, size_t i) {
+static void advance_rng(Channel* self, size_t i) {
     if (self->rng_period && !(i % self->rng_period)) {
         int32_t rs = self->rng_state;
         self->rng_state = (rs >> 1) ^ ((rs & 1) << 13) ^ ((rs & 1) << 16);
     }
 }
 
-int16_t gen_sample(Channel* self) {
+static int16_t gen_sample(Channel* self) {
     self->osc_phase += OSC_PREC;
     self->osc_phase %= self->osc_period;
     bool cond = self->rng_period == 0;
@@ -56,7 +56,7 @@ int16_t gen_sample(Channel* self) {
     return (int16_t) (out_v * env_v * (self->vel / 4));
 }
 
-void handle_midi_event(SoundGen* self, MidiEvent e) {
+static void handle_midi_event(SoundGen* self, MidiEvent e) {
     uint8_t status = e.status & 0xf0;
     uint8_t chn = (e.status & 0x0f) % 3;
 
@@ -82,7 +82,7 @@ void handle_midi_event(SoundGen* self, MidiEvent e) {
     }
 }
 
-void handle_cc(SoundGen* self, uint8_t chn, uint8_t cc, uint8_t val) {
+static void handle_cc(SoundGen* self, uint8_t chn, uint8_t cc, uint8_t val) {
     switch (cc) {
         case 80:
             self->chans[chn].env_step = -64 + val;
@@ -137,7 +137,7 @@ bool sg_is_playing(SoundGen* self) {
 }
 
 void sg_generate(SoundGen* self, Backend* be, uint32_t lag) {
-    size_t smpls = ceil(SAMPLE_RATE / 1000.0f * (float) lag);
+    size_t smpls = ceilf(SAMPLE_RATE / 1000.0f * (float) lag);
     if (smpls > BUF_LEN) smpls = BUF_LEN;
     MidiEvent event;
     int16_t out;
