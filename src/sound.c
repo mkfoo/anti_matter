@@ -137,10 +137,18 @@ bool sg_is_playing(SoundGen* self) {
 }
 
 void sg_generate(SoundGen* self, Backend* be, uint32_t lag) {
-    size_t smpls = ceilf(SAMPLE_RATE / 1000.0f * (float) lag);
-    if (smpls > BUF_LEN) smpls = BUF_LEN;
+    static size_t overrun = 0;
     MidiEvent event;
     int16_t out;
+
+    float fsmpls = SAMPLE_RATE / 1000.0f * (float) lag;
+    size_t smpls = (size_t) ceilf(fsmpls);
+    overrun += smpls - (size_t) floorf(fsmpls); 
+    smpls -= overrun > 1;
+    overrun -= overrun > 1; 
+
+    if (smpls > BUF_LEN) 
+        smpls = BUF_LEN;
 
     for (size_t i = 0; i < smpls; i++) {
         do {
