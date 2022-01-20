@@ -9,7 +9,7 @@ static void limit_fps(GameState* self);
 static void add_sprite(GameState* gs, int16_t x, int16_t y, uint8_t id);
 static void set_sprite_pos(GameState* gs, int16_t x, int16_t y, uint8_t id);
 static void add_wall(GameState* gs, int16_t x, int16_t y, uint8_t tile);
-static void check_overlap(GameState* gs, Sprite* s1, Sprite* s2);
+static bool check_overlap(GameState* gs, Sprite* s1, Sprite* s2);
 static bool check_los(GameState* gs, Sprite* s1, Sprite* s2);
 static void decorate(Backend* be);
 static void render_stats(GameState* gs, Backend* be);
@@ -133,10 +133,16 @@ void gs_post_update(GameState* gs) {
         return;
     } 
 
-    if (is_aligned(anti) && is_aligned(matter)) {
-        bool los = check_los(gs, anti, matter);
+    bool lose = false;
 
-        if (gs->to_clear <= 0 && !los) {
+    lose |= check_overlap(gs, gs->adj_a.front, gs->adj_m.front);
+    lose |= check_overlap(gs, gs->adj_a.front, gs->adj_a.next);
+    lose |= check_overlap(gs, gs->adj_m.front, gs->adj_m.next);
+
+    if (is_aligned(anti) && is_aligned(matter)) {
+        lose |= check_los(gs, anti, matter);
+
+        if (gs->to_clear <= 0 && !lose) {
             gs_set_scene(gs, sc_level_clear, 0);
             sg_stop(gs->sound);
             return;
@@ -144,9 +150,6 @@ void gs_post_update(GameState* gs) {
     }
 
     check_overlap(gs, anti, matter);
-    check_overlap(gs, gs->adj_a.front, gs->adj_m.front);
-    check_overlap(gs, gs->adj_a.front, gs->adj_a.next);
-    check_overlap(gs, gs->adj_m.front, gs->adj_m.next);
 }
 
 void gs_swap_sprites(GameState* gs) {
@@ -283,7 +286,7 @@ static void add_wall(GameState* gs, int16_t x, int16_t y, uint8_t tile) {
     gs->n_sprites++;
 }
 
-static void check_overlap(GameState* gs, Sprite* s1, Sprite* s2) {
+static bool check_overlap(GameState* gs, Sprite* s1, Sprite* s2) {
     if (is_overlapping(s1, s2)) {
         if (has_flag(s1, F_UNSTABLE) || has_flag(s2, F_UNSTABLE)) {
             s1->tile = 41;
@@ -291,6 +294,7 @@ static void check_overlap(GameState* gs, Sprite* s1, Sprite* s2) {
             gs_set_scene(gs, sc_death2, 2);
             sg_stop(gs->sound);
             sg_play(gs->sound, 7);
+            return true;
         } else {
             gs->to_clear -= 2;
             gs_score(gs, 160);
@@ -300,6 +304,8 @@ static void check_overlap(GameState* gs, Sprite* s1, Sprite* s2) {
             sg_play(gs->sound, 9);
         }
     }
+
+    return false;
 }
 
 static bool check_los(GameState* gs, Sprite* s1, Sprite* s2) {
