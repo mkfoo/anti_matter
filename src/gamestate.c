@@ -296,8 +296,6 @@ static bool check_overlap(GameState* gs, Sprite* s1, Sprite* s2) {
             sg_play(gs->sound, 7);
             return true;
         } else {
-            gs->to_clear -= 2;
-            gs_score(gs, 160);
             gs_set_scene(gs, sc_wait, 1);
             destroy_sprite(s1);
             destroy_sprite(s2);
@@ -333,6 +331,8 @@ static void remove_destroyed(GameState* gs) {
         Sprite* s = &gs->sprites[i];
 
         if (has_flag(s, F_DESTROY)) {
+            gs->to_clear--;
+            gs_score(gs, 80);
             destroy_sprite(s);
         }
     }
