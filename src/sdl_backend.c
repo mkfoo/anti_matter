@@ -1,12 +1,18 @@
 #include "backend.h"
+#include "texture_data.h"
+
+#define LOG_ERR(err) \
+    if (err) { \
+        SDL_LogCritical(SDL_LOG_CATEGORY_ERROR, "%s [file %s, line %d]", SDL_GetError(), __FILE__, __LINE__); \
+        return NULL; \
+    }
 
 static Event be_get_keydown(Backend* be, SDL_Keycode key);
 static void be_toggle_fullscreen(Backend* be);
 static void be_toggle_scale(Backend* be);
-static void log_error(void);
 
 const SDL_Color COLORS[16] = {
-    {0x00, 0x00, 0x00, 0x00}, // TRANSPARENT
+    {0xff, 0x00, 0xff, 0xff}, // TRANSPARENT
     {0x00, 0x00, 0x00, 0xff}, // BLACK
     {0x3e, 0xb8, 0x49, 0xff}, // MEDIUM_GREEN
     {0x74, 0xd0, 0x7d, 0xff}, // LIGHT_GREEN
@@ -40,69 +46,44 @@ Backend* be_init(void) {
     int err = 0;
 
     Backend* be = SDL_malloc(sizeof(Backend));
-
-    if (be == NULL) {
-        return NULL;
-    }
+    LOG_ERR(be == NULL);
 
     err = SDL_Init(SDL_INIT_VIDEO | 
-                    SDL_INIT_AUDIO | 
-                    SDL_INIT_EVENTS);
-
-    if (err) {
-        log_error(); 
-        return NULL;
-    }
+                   SDL_INIT_AUDIO | 
+                   SDL_INIT_EVENTS);
+    LOG_ERR(err);
 
     be->win = SDL_CreateWindow(WINDOW_TITLE,
-                                SDL_WINDOWPOS_CENTERED,
-                                SDL_WINDOWPOS_CENTERED,
-                                WINDOW_W, WINDOW_H, 0);
-
-    if (be->win == NULL) {
-        log_error(); 
-        return NULL;
-    }
+                               SDL_WINDOWPOS_CENTERED,
+                               SDL_WINDOWPOS_CENTERED,
+                               WINDOW_W, WINDOW_H, 0);
+    LOG_ERR(be->win == NULL);
 
     be->ren = SDL_CreateRenderer(be->win, -1, 0);
+    LOG_ERR(be->ren == NULL);
 
-    if (be->ren == NULL) {
-        log_error(); 
-        return NULL;
-    }
+    SDL_Surface* surf = SDL_CreateRGBSurfaceWithFormatFrom((void*) TEXTURE_DATA, 
+                                                                   TEXTURE_W, 
+                                                                   TEXTURE_H, 
+                                                                   8, 
+                                                                   TEXTURE_W, 
+                                                                   SDL_PIXELFORMAT_INDEX8);
+    LOG_ERR(surf == NULL);
 
-    SDL_Surface* surf = SDL_LoadBMP(TEXTURE_PATH);
+    err = SDL_SetPaletteColors(surf->format->palette, COLORS, 0, 16);
+    LOG_ERR(err);
 
-    if (surf == NULL) {
-        log_error(); 
-        return NULL;
-    }
-
-    Uint32 key = SDL_MapRGB(surf->format, 255, 0, 255);
-    err = SDL_SetColorKey(surf, SDL_TRUE, key);
-
-    if (err) {
-        log_error(); 
-        return NULL;
-    }
+    err = SDL_SetColorKey(surf, SDL_TRUE, 0);
+    LOG_ERR(err);
 
     be->tex = SDL_CreateTextureFromSurface(be->ren, surf);
-
-    if (be->tex == NULL) {
-        log_error(); 
-        return NULL;
-    }
+    LOG_ERR(be->tex == NULL);
+    SDL_FreeSurface(surf);
 
     be->dev = SDL_OpenAudioDevice(NULL, 0, &SPEC_WANTED, &spec_received, 0);
-
-    if (be->dev == 0) {
-        log_error(); 
-        return NULL;
-    }
+    LOG_ERR(be->dev == 0);
 
     SDL_PauseAudioDevice(be->dev, 0);
-
-    SDL_FreeSurface(surf);
     be_toggle_scale(be);
     return be;
 }
@@ -202,9 +183,7 @@ void be_fill_rect(Backend* be, int x, int y, int w, int h, int color) {
 }
 
 void be_queue_audio(Backend* be, const int16_t* data, uint32_t len) {
-    if (SDL_QueueAudio(be->dev, data, len)) {
-        log_error();
-    }
+    SDL_QueueAudio(be->dev, data, len);
 }
 
 void be_draw_line(Backend* be, int x1, int y1, int x2, int y2, int color) {
@@ -259,8 +238,3 @@ uint32_t be_get_millis(void) {
 void be_delay(uint32_t dur) {
     SDL_Delay(dur);
 }
-
-static void log_error(void) {
-    SDL_LogCritical(SDL_LOG_CATEGORY_ERROR, "%s [file %s, line %d]", SDL_GetError(), __FILE__, __LINE__);
-}
-

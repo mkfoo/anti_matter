@@ -3,26 +3,9 @@
 #include <assert.h>
 #include "antimatter.h"
 #include "midi.h"
+#include "midi_data.h"
 
-MidiFile load_test_midi(void);
-
-MidiFile load_test_midi(void) {
-    FILE* file = fopen("./assets/test.mid", "r");
-    assert(file != NULL);
-    int err = fseek(file, 0, SEEK_END);
-    assert(!err);
-    int64_t signed_len = ftell(file);
-    assert(signed_len > 0); 
-    size_t len = (size_t) signed_len; 
-    rewind(file);
-    uint8_t* data = calloc(len, sizeof(uint8_t)); 
-    assert(data != NULL);
-    size_t count = fread(data, sizeof(uint8_t), len, file);
-    assert(count == len);
-    return (MidiFile) { data, len };
-}
-
-static MidiReader* reader_init(MidiFile file);
+static MidiReader* reader_init(void);
 static uint8_t read_u8(MidiReader* self);
 static uint16_t read_u16(MidiReader* self);
 static uint32_t read_u32(MidiReader* self);
@@ -34,11 +17,12 @@ static MidiEvent read_cvm(MidiReader* self, uint8_t byte1);
 static MidiEvent read_meta(MidiReader* self);
 static void reader_quit(MidiReader* self);
 
-static MidiReader* reader_init(MidiFile file) {
+static MidiReader* reader_init(void) {
     MidiReader* self = calloc(1, sizeof(MidiReader));
     assert(self != NULL);
-    self->ptr = file.data;
-    self->data_end = self->ptr + file.len;
+    self->ptr = (uint8_t*) MIDI_DATA;
+    size_t len = sizeof MIDI_DATA;
+    self->data_end = self->ptr + len;
     self->track_end = self->data_end;
     assert(read_u32(self) == 0x4d546864);
     assert(read_u32(self) == 6);
@@ -158,8 +142,7 @@ static void reader_quit(MidiReader* self) {
 MidiSeq* ms_init(void) {
     MidiSeq* self = calloc(1, sizeof(MidiSeq));
     assert(self != NULL);
-    MidiFile file = load_test_midi();
-    self->reader = reader_init(file);
+    self->reader = reader_init();
     self->playing = false;
     return self;
 }

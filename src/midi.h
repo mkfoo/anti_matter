@@ -1,11 +1,6 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-typedef struct {
-    uint8_t* data;
-    size_t len;
-} MidiFile;
-
 typedef enum {
     NOTE_OFF = 0x80,
     NOTE_ON = 0x90,

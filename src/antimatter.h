@@ -12,7 +12,7 @@
 #define MAP_H 11
 #define MAP_W 11
 #define MAX_LEVEL 4
-#define MAX_SPRITES 100
+#define MAX_SPRITES 122
 #define MAX_X 176
 #define MAX_Y 176
 #define MOVEMENT_SPEED 0.12f
@@ -23,7 +23,8 @@
 #define START_LEVEL 0
 #define START_LIVES 4
 #define SWAP_COST 400
-#define TEXTURE_PATH "assets/graphics.bmp"
+#define TEXTURE_H 184
+#define TEXTURE_W 160
 #define TILES_PER_ROW 10
 #define TILE_H 16
 #define TILE_W 16
