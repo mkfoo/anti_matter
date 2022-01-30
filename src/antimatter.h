@@ -32,3 +32,11 @@
 #define WINDOW_H 192
 #define WINDOW_TITLE "ANTI/MATTER"
 #define WINDOW_W 256
+
+#include <stdio.h>
+
+#define LOG_ERR(expr, msg) \
+    if (expr) { \
+        fprintf(stderr, "%s [file %s, line %d]\n", (msg), __FILE__, __LINE__); \
+        return NULL; \
+    }

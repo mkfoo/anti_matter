@@ -1,12 +1,6 @@
 #include "backend.h"
 #include "texture_data.h"
 
-#define LOG_ERR(err) \
-    if (err) { \
-        SDL_LogCritical(SDL_LOG_CATEGORY_ERROR, "%s [file %s, line %d]", SDL_GetError(), __FILE__, __LINE__); \
-        return NULL; \
-    }
-
 static Event be_get_keydown(Backend* be, SDL_Keycode key);
 static void be_toggle_fullscreen(Backend* be);
 static void be_toggle_scale(Backend* be);
@@ -45,22 +39,22 @@ Backend* be_init(void) {
     static SDL_AudioSpec spec_received = { 0 };
     int err = 0;
 
-    Backend* be = SDL_malloc(sizeof(Backend));
-    LOG_ERR(be == NULL);
+    Backend* be = calloc(1, sizeof(Backend));
+    LOG_ERR(be == NULL, "alloc failure");
 
     err = SDL_Init(SDL_INIT_VIDEO | 
                    SDL_INIT_AUDIO | 
                    SDL_INIT_EVENTS);
-    LOG_ERR(err);
+    LOG_ERR(err, SDL_GetError());
 
     be->win = SDL_CreateWindow(WINDOW_TITLE,
                                SDL_WINDOWPOS_CENTERED,
                                SDL_WINDOWPOS_CENTERED,
                                WINDOW_W, WINDOW_H, 0);
-    LOG_ERR(be->win == NULL);
+    LOG_ERR(be->win == NULL, SDL_GetError());
 
     be->ren = SDL_CreateRenderer(be->win, -1, 0);
-    LOG_ERR(be->ren == NULL);
+    LOG_ERR(be->ren == NULL, SDL_GetError());
 
     SDL_Surface* surf = SDL_CreateRGBSurfaceWithFormatFrom((void*) TEXTURE_DATA, 
                                                                    TEXTURE_W, 
@@ -68,20 +62,20 @@ Backend* be_init(void) {
                                                                    8, 
                                                                    TEXTURE_W, 
                                                                    SDL_PIXELFORMAT_INDEX8);
-    LOG_ERR(surf == NULL);
+    LOG_ERR(surf == NULL, SDL_GetError());
 
     err = SDL_SetPaletteColors(surf->format->palette, COLORS, 0, 16);
-    LOG_ERR(err);
+    LOG_ERR(err, SDL_GetError());
 
     err = SDL_SetColorKey(surf, SDL_TRUE, 0);
-    LOG_ERR(err);
+    LOG_ERR(err, SDL_GetError());
 
     be->tex = SDL_CreateTextureFromSurface(be->ren, surf);
-    LOG_ERR(be->tex == NULL);
+    LOG_ERR(be->tex == NULL, SDL_GetError());
     SDL_FreeSurface(surf);
 
     be->dev = SDL_OpenAudioDevice(NULL, 0, &SPEC_WANTED, &spec_received, 0);
-    LOG_ERR(be->dev == 0);
+    LOG_ERR(be->dev == 0, SDL_GetError());
 
     SDL_PauseAudioDevice(be->dev, 0);
     be_toggle_scale(be);

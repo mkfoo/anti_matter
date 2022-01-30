@@ -10,7 +10,7 @@ static uint8_t read_u8(MidiReader* self);
 static uint16_t read_u16(MidiReader* self);
 static uint32_t read_u32(MidiReader* self);
 static uint32_t read_var_len(MidiReader* self);
-static void scan_for_tracks(MidiReader* self);
+static int scan_for_tracks(MidiReader* self);
 static void set_track(MidiReader* self, uint16_t track_id);
 static TrackEvent read_event(MidiReader* self);
 static MidiEvent read_cvm(MidiReader* self, uint8_t byte1);
@@ -19,20 +19,34 @@ static void reader_quit(MidiReader* self);
 
 static MidiReader* reader_init(void) {
     MidiReader* self = calloc(1, sizeof(MidiReader));
-    assert(self != NULL);
+    LOG_ERR(self == NULL, "alloc failure");
+
     self->ptr = (uint8_t*) MIDI_DATA;
     size_t len = sizeof MIDI_DATA;
     self->data_end = self->ptr + len;
     self->track_end = self->data_end;
-    assert(read_u32(self) == 0x4d546864);
-    assert(read_u32(self) == 6);
-    assert(read_u16(self));
+
+    uint32_t magic = read_u32(self);
+    LOG_ERR(magic != 0x4d546864, "invalid midi header");
+
+    uint32_t hlen = read_u32(self);
+    LOG_ERR(hlen != 6, "invalid midi header");
+
+    uint16_t fmt = read_u16(self);
+    LOG_ERR(fmt != 2, "invalid midi format");
+
     self->ntrks = read_u16(self);
-    assert(self->ntrks);
-    assert(read_u16(self));
+    LOG_ERR(!self->ntrks, "null ntrks");
+
+    uint16_t div = read_u16(self);
+    LOG_ERR(!div, "null time div");
+
     self->tracks = calloc(self->ntrks, sizeof(uint8_t**));
-    assert(self->tracks != NULL);
-    scan_for_tracks(self);
+    LOG_ERR(self->tracks == NULL, "alloc failure");
+
+    int err = scan_for_tracks(self);
+    LOG_ERR(err, "invalid track header");
+
     return self;
 }
 
@@ -66,13 +80,16 @@ static uint32_t read_var_len(MidiReader* self) {
     return val;
 }
 
-static void scan_for_tracks(MidiReader* self) {
+static int scan_for_tracks(MidiReader* self) {
     for (size_t i = 0; i < self->ntrks; i++) {
-        assert(read_u32(self) == 0x4d54726b);
+        uint32_t magic = read_u32(self);
         uint32_t t_len = read_u32(self);
+        if (magic != 0x4d54726b || !t_len) return -1;
         self->tracks[i] = self->ptr;
         self->ptr += t_len;
     }
+
+    return 0;
 }
 
 static void set_track(MidiReader* self, uint16_t track_id) {
@@ -121,8 +138,8 @@ static MidiEvent read_cvm(MidiReader* self, uint8_t byte1) {
         case CHANNEL_AFTERTOUCH:
             break;
         default:
-            printf("Unrecognized MIDI event %x\n", self->status);
-            abort();
+            fprintf(stderr, "warning: unrecognized MIDI event %x\n", self->status);
+            self->status = END_OF_TRACK;
     }
 
     return (MidiEvent) { self->status, data1, data2 };
@@ -141,8 +158,11 @@ static void reader_quit(MidiReader* self) {
 
 MidiSeq* ms_init(void) {
     MidiSeq* self = calloc(1, sizeof(MidiSeq));
-    assert(self != NULL);
+    LOG_ERR(self == NULL, "alloc failure");
+
     self->reader = reader_init();
+    LOG_ERR(self->reader == NULL, "midi error");
+
     self->playing = false;
     return self;
 }

@@ -18,17 +18,16 @@ static Adjacent find_adjacent(GameState* gs, Sprite* s, Delta d);
 
 GameState* gs_init(void) {
     GameState* gs = calloc(1, sizeof(GameState));
+    LOG_ERR(gs == NULL, "alloc failure");
 
-    if (gs == NULL) {
-        return NULL;
-    }
+    gs->sound = sg_init();
+    LOG_ERR(gs->sound == NULL, "sound error");
 
     gs->prev = be_get_millis();
-    gs->sound = sg_init();
     gs->high = 1000;
+    add_sprite(gs, 0, 0, ID_NIL);
     gs_set_scene(gs, sc_splash, 5); 
     sg_play(gs->sound, 0);
-    add_sprite(gs, 0, 0, ID_NIL);
     return gs;
 }
 

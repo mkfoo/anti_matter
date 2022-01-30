@@ -1,5 +1,4 @@
 #include <stdio.h>
-#include <assert.h>
 #include "sound.h"
 
 #define ENV_PERIOD 32000
@@ -97,12 +96,16 @@ static void handle_cc(SoundGen* self, uint8_t chn, uint8_t cc, uint8_t val) {
 
 SoundGen* sg_init(void) {
     SoundGen* self = calloc(1, sizeof(SoundGen));
-    assert(self != NULL);
+    LOG_ERR(self == NULL, "alloc failure");
+
     self->vol = MAX_VOL / 2;
     self->prev_vol = MAX_VOL / 2;
+
     self->buf = calloc(BUF_LEN, sizeof(int16_t));
-    assert(self->buf != NULL);
+    LOG_ERR(self->buf == NULL, "alloc failure");
+
     self->midi = ms_init();
+    LOG_ERR(self->midi == NULL, "sequencer error");
     
     for (size_t c = 0; c < 3; c++) {
         self->chans[c].osc_period = PTAB[60];
