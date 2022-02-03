@@ -18,33 +18,41 @@
         (d (st-note (+ n (* 12 (rand 0 4))) d d 64))))
 
 (define trp
-    (lambda (n)
-        (+ (- n (% n 12)) (% (+ n 7) 12))))
+    (lambda (n i)
+        (+ (- n (% n 12)) (% (+ n i) 12))))
 
-(define bn G3)
+(define seq (' 7 7 7 7 7 7 7 7 1 1 1 1))
+
 (cc7 80 44)
 (4 (st-arp 16 E3))
-(12 (set bn (trp bn)) (2 (st-arp 16 bn)))
-(3 (st-arp 16 bn))
+(define bn G3)
+(for-each seq 
+    (lambda (i)
+        (2 (st-arp 16 bn))
+        (set bn (trp bn i)))) 
 
 (set chn 1)
-(set bn B2)
 (cc7 80 44)
 (set st-note (init-st))
 (4 (st-arp 8 E2))
-(12 (set bn (trp bn)) (2 (st-arp 8 bn)))
-(3 (st-arp 8 bn))
+(set bn B2)
+(for-each seq 
+    (lambda (i)
+        (2 (st-arp 8 bn))
+        (set bn (trp bn i)))) 
 
 (set chn 2)
 (cc7 80 65)
 (on E2 0 74)
 (4 (rest 1))
 (off E2 0 0)
-(set bn E2)
 (cc7 80 58)
 (set st-note (init-st))
-(12 (set bn (trp bn)) (2 (st-arp 4 bn)))
-(3 (st-arp 4 bn))
+(set bn E2)
+(for-each seq 
+    (lambda (i)
+        (2 (st-arp 4 bn))
+        (set bn (trp bn i)))) 
 
 ; start
 (set trk 2)
@@ -85,9 +93,9 @@
 ; move
 (set trk 5)
 (set chn 0)
-(cc7 80 99)
-(cc7 81 6)
-(note C5 16 16 48)
+(cc7 80 127)
+(cc7 81 3)
+(note C5 32 32 32)
 
 ; death1
 (set trk 6)
