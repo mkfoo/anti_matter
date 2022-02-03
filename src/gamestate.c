@@ -384,9 +384,9 @@ static void decorate(Backend* be) {
         be_blit_tile(be, 240, y, t + 9);
     }
 
-    be_blit_tile(be, 204, 4, 80);
-    be_blit_tile(be, 220, 4, 81);
-    be_blit_tile(be, 236, 4, 82);
+    be_blit_tile(be, 204, 5, 80);
+    be_blit_tile(be, 220, 5, 81);
+    be_blit_tile(be, 236, 5, 82);
 
     be_blit_tile(be, 197, 170, 83);
     be_blit_tile(be, 197 + 16, 170, 84);
