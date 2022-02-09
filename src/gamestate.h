@@ -13,17 +13,17 @@ struct GameState {
     SceneFn* scene;
     SoundGen* sound;
     float phase;
-    uint32_t start;
-    uint32_t delay;
-    uint32_t prev;
-    uint32_t lag;
-    int16_t level;
+    uint64_t start;
+    uint64_t delay;
+    uint64_t prev;
+    uint64_t lag;
+    int32_t level;
     int32_t high;
     int32_t score;
     int32_t energy;
-    int16_t lives;
-    int16_t to_clear;
-    uint8_t n_sprites;
+    int32_t lives;
+    int32_t to_clear;
+    uint32_t n_sprites;
     Adjacent adj_a;
     Adjacent adj_m;
     Sprite sprites[MAX_SPRITES];
@@ -31,7 +31,8 @@ struct GameState {
 
 GameState* gs_init(void);
 float gs_phase(GameState* gs);
-bool gs_update(GameState* gs, Backend* be);
+bool gs_update(GameState* gs, Backend* be, uint64_t clock);
+void gs_limit_fps(GameState* self);
 void gs_set_scene(GameState* gs, SceneFn* scene, uint32_t delay);
 void gs_load_level(GameState* gs);
 void gs_adv_state(GameState* gs);

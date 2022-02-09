@@ -139,7 +139,7 @@ bool sg_is_playing(SoundGen* self) {
     return self->midi->playing;
 }
 
-void sg_generate(SoundGen* self, Backend* be, uint32_t lag) {
+void sg_generate(SoundGen* self, Backend* be, uint64_t lag) {
     static size_t overrun = 0;
     MidiEvent event;
     int16_t out;

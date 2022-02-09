@@ -225,7 +225,7 @@ static void be_toggle_scale(Backend* be) {
     }
 }
 
-uint32_t be_get_millis(void) {
+uint64_t be_get_millis(void) {
     return SDL_GetTicks();
 }
 

@@ -4,8 +4,7 @@
 #include "level_data.h"
 #include "scene.h"
 
-static void advance(GameState* self);
-static void limit_fps(GameState* self);
+static void advance(GameState* self, uint64_t clock);
 static void add_sprite(GameState* gs, int16_t x, int16_t y, uint8_t id);
 static void set_sprite_pos(GameState* gs, int16_t x, int16_t y, uint8_t id);
 static void add_wall(GameState* gs, int16_t x, int16_t y, uint8_t tile);
@@ -23,7 +22,6 @@ GameState* gs_init(void) {
     gs->sound = sg_init();
     LOG_ERR(gs->sound == NULL, "sound error");
 
-    gs->prev = be_get_millis();
     gs->high = 1000;
     add_sprite(gs, 0, 0, ID_NIL);
     gs_set_scene(gs, sc_splash, 5); 
@@ -43,14 +41,22 @@ float gs_phase(GameState* self) {
     return 1.0f;
 }
 
-bool gs_update(GameState* gs, Backend* be) {
-    advance(gs);
+bool gs_update(GameState* gs, Backend* be, uint64_t clock) {
+    advance(gs, clock);
     SceneFn* scene = gs->scene;
     bool retval = scene(gs, be);
     sg_generate(gs->sound, be, gs->lag);
     be_present(be);
-    limit_fps(gs);
     return retval;
+}
+
+void gs_limit_fps(GameState* self) {
+    uint64_t next = self->prev + MS_PER_FRAME;
+    uint64_t now = be_get_millis();
+
+    if (next > now) {
+        be_delay(next - now);
+    }
 }
 
 void gs_set_scene(GameState* gs, SceneFn* scene, uint32_t delay) {
@@ -206,7 +212,7 @@ void gs_render_sprites(GameState* gs, Backend* be) {
     int16_t bound_y = MAX_Y - TILE_H;
     int16_t fw = FRAME_W;
 
-    for (int i = 1; i < gs->n_sprites; i++) {
+    for (size_t i = 1; i < gs->n_sprites; i++) {
         Sprite* s = &gs->sprites[i];
 
         if (!has_flag(s, F_NIL)) {
@@ -245,21 +251,11 @@ void gs_score(GameState* gs, int32_t num) {
     }
 }
 
-static void advance(GameState* self) {
-    uint32_t curr = be_get_millis();
-    uint32_t lag = curr - self->prev;
+static void advance(GameState* self, uint64_t clock) {
+    uint64_t lag = clock - self->prev;
     self->phase = fmodf(self->phase + ANIM_SPEED * (float) lag, 1.0f);
     self->lag = lag;
-    self->prev = curr;
-}
-
-static void limit_fps(GameState* self) {
-    uint32_t next = self->prev + MS_PER_FRAME;
-    uint32_t now = be_get_millis();
-
-    if (next > now) {
-        be_delay(next - now);
-    }
+    self->prev = clock;
 }
 
 static void add_sprite(GameState* gs, int16_t x, int16_t y, uint8_t id) {
@@ -309,7 +305,7 @@ static bool check_los(GameState* gs, Sprite* s1, Sprite* s2) {
     Delta d = get_delta(s1, s2);
 
     if (d.x == 0 || d.y == 0) {
-        for (int i = 3; i < gs->n_sprites; i++) {
+        for (size_t i = 3; i < gs->n_sprites; i++) {
             Sprite* s0 = &gs->sprites[i];
 
             if (point_between(s0->p, s1->p, s2->p)) {
@@ -326,7 +322,7 @@ static bool check_los(GameState* gs, Sprite* s1, Sprite* s2) {
 }
 
 static void remove_destroyed(GameState* gs) {
-    for (int i = 3; i < gs->n_sprites; i++) {
+    for (size_t i = 3; i < gs->n_sprites; i++) {
         Sprite* s = &gs->sprites[i];
 
         if (has_flag(s, F_DESTROY)) {
@@ -344,7 +340,7 @@ static Adjacent find_adjacent(GameState* gs, Sprite* s1, Delta d) {
     Sprite* nil = &gs->sprites[ID_NIL];
     Adjacent adj = { nil, nil, nil, next };
 
-    for (int i = 1; i < gs->n_sprites; i++) {
+    for (size_t i = 1; i < gs->n_sprites; i++) {
         Sprite* s2 = &gs->sprites[i];
 
         if (point_equals(s2->p, front)) {

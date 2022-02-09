@@ -12,6 +12,7 @@ typedef struct {
 
 typedef enum {
     QUIT,
+    IDLE,
     KD_ESC,
     KD_UP,
     KD_DOWN,
@@ -22,7 +23,6 @@ typedef enum {
     KD_F2,
     KD_F5,
     KD_F6,
-    IDLE,
 } Event;
 
 Backend* be_init(void);
@@ -33,6 +33,6 @@ void be_blit_text(Backend* be, int x, int y, char* str);
 void be_fill_rect(Backend* be, int x, int y, int w, int h, int color);
 void be_draw_line(Backend* be, int x1, int y1, int x2, int y2, int color);
 void be_queue_audio(Backend* be, const int16_t* data, uint32_t len);
-uint32_t be_get_millis(void);
+uint64_t be_get_millis(void);
 void be_delay(uint32_t dur);
 void be_quit(Backend* be);

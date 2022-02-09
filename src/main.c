@@ -1,17 +1,70 @@
 #include "gamestate.h"
 
-int main(void) {
-    Backend* be = be_init();
-    GameState* gs = gs_init();
+static Backend* be = NULL;
+static GameState* gs = NULL;
 
-    if (be == NULL || gs == NULL) {
+#ifdef WASM_BACKEND
+__attribute__((export_name("am_init")))
+#endif
+int am_init(void);
+
+#ifdef WASM_BACKEND
+__attribute__((export_name("am_update")))
+#endif
+int am_update(uint64_t clock);
+
+void am_quit(void);
+
+int am_init(void) {
+    if (be == NULL && gs == NULL) {
+        be = be_init();
+        gs = gs_init();
+
+        if (be == NULL || gs == NULL) { 
+            return -1; 
+        }
+
+        return 0;
+    }
+
+    printf("error: tried to call init twice");
+    return -1;
+}
+
+int am_update(uint64_t clock) {
+    if (be == NULL || gs == NULL) { 
+        return 0;
+    }
+
+    return gs_update(gs, be, clock);
+}
+
+void am_quit(void) {
+    if (gs != NULL) {
+        gs_quit(gs);
+        gs = NULL;
+    }
+
+    if (be != NULL) {
+        be_quit(be);
+        be = NULL;
+    }
+}
+
+int main(void) {
+    int err = am_init();
+
+    if (err) {
         return EXIT_FAILURE;
     }
 
-    while (gs_update(gs, be));
+    uint64_t clock = be_get_millis();
 
-    gs_quit(gs);
-    be_quit(be);
+    while (am_update(clock)) {
+        gs_limit_fps(gs);    
+        clock = be_get_millis();
+    }
 
+    am_quit();
     return EXIT_SUCCESS;
 }
