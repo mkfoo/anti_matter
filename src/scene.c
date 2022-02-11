@@ -105,7 +105,7 @@ bool sc_title(GameState* gs, Backend* be) {
     render_title(be, 64, 56);
     sg_play(gs->sound, 1);
 
-    if (gs_phase(gs) > 0.25) {
+    if (gs_phase(gs) > 0.25f) {
         be_blit_text(be, 72, 112, "PUSH SPACE KEY");
     }
 

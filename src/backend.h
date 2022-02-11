@@ -1,7 +1,15 @@
 #pragma once
+#include "antimatter.h"
+
+#ifdef WASM_BACKEND
+
+typedef struct {
+    int dummy_value;
+} Backend;
+
+#else
 
 #include <SDL.h>
-#include "antimatter.h"
 
 typedef struct {
     SDL_Window* win;
@@ -9,6 +17,8 @@ typedef struct {
     SDL_Texture* tex;
     SDL_AudioDeviceID dev;
 } Backend;
+
+#endif
 
 typedef enum {
     QUIT,
@@ -21,6 +31,8 @@ typedef enum {
     KD_SPC,
     KD_F1,
     KD_F2,
+    KD_F3,
+    KD_F4,
     KD_F5,
     KD_F6,
 } Event;

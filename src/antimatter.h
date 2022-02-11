@@ -2,7 +2,7 @@
 
 #define ANIM_SPEED 0.0012f
 #define BONUS_LIMIT 4800
-#define BUF_LEN 4096
+#define BUF_LEN 1024
 #define CHARS_PER_ROW 20
 #define DECOR_TILE_BASE 70
 #define FONT_H 8
@@ -13,6 +13,7 @@
 #define MAP_W 11
 #define MAX_LEVEL 5
 #define MAX_SPRITES 122
+#define MAX_LAG 200
 #define MAX_X 176
 #define MAX_Y 176
 #define MOVEMENT_SPEED 0.12f
@@ -37,6 +38,6 @@
 
 #define LOG_ERR(expr, msg) \
     if (expr) { \
-        fprintf(stderr, "%s [file %s, line %d]\n", (msg), __FILE__, __LINE__); \
+        printf("%s [file %s, line %d]\n", (msg), __FILE__, __LINE__); \
         return NULL; \
     }

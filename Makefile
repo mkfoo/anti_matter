@@ -1,7 +1,7 @@
 VPATH = src
 PROGRAM = antimatter
 CFLAGS = -Werror -Wall -Wpedantic -Wextra -fwrapv -std=c17 $(shell pkg-config --cflags sdl2)
-OFLAGS = -Og
+OFLAGS = -O3
 LDFLAGS = -lm $(shell pkg-config --libs sdl2)
 OBJECTS = main.o gamestate.o scene.o sdl_backend.o sprite.o sound.o midi.o
 

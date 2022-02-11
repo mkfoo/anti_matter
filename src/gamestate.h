@@ -13,10 +13,10 @@ struct GameState {
     SceneFn* scene;
     SoundGen* sound;
     float phase;
-    uint64_t start;
-    uint64_t delay;
-    uint64_t prev;
-    uint64_t lag;
+    int64_t start;
+    int64_t delay;
+    int64_t prev;
+    int64_t lag;
     int32_t level;
     int32_t high;
     int32_t score;
@@ -31,7 +31,7 @@ struct GameState {
 
 GameState* gs_init(void);
 float gs_phase(GameState* gs);
-bool gs_update(GameState* gs, Backend* be, uint64_t clock);
+bool gs_update(GameState* gs, Backend* be, double timestamp);
 void gs_limit_fps(GameState* self);
 void gs_set_scene(GameState* gs, SceneFn* scene, uint32_t delay);
 void gs_load_level(GameState* gs);

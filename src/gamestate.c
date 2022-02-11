@@ -4,7 +4,7 @@
 #include "level_data.h"
 #include "scene.h"
 
-static void advance(GameState* self, uint64_t clock);
+static bool advance_clock(GameState* self, double timestamp);
 static void add_sprite(GameState* gs, int16_t x, int16_t y, uint8_t id);
 static void set_sprite_pos(GameState* gs, int16_t x, int16_t y, uint8_t id);
 static void add_wall(GameState* gs, int16_t x, int16_t y, uint8_t tile);
@@ -41,18 +41,21 @@ float gs_phase(GameState* self) {
     return 1.0f;
 }
 
-bool gs_update(GameState* gs, Backend* be, uint64_t clock) {
-    advance(gs, clock);
-    SceneFn* scene = gs->scene;
-    bool retval = scene(gs, be);
-    sg_generate(gs->sound, be, gs->lag);
-    be_present(be);
-    return retval;
+bool gs_update(GameState* gs, Backend* be, double timestamp) {
+    if (advance_clock(gs, timestamp)) {
+        be_present(be);
+        SceneFn* scene = gs->scene;
+        bool retval = scene(gs, be);
+        sg_generate(gs->sound, be, gs->lag);
+        return retval;
+    }
+
+    return true;
 }
 
 void gs_limit_fps(GameState* self) {
-    uint64_t next = self->prev + MS_PER_FRAME;
-    uint64_t now = be_get_millis();
+    int64_t next = self->prev + MS_PER_FRAME;
+    int64_t now = be_get_millis();
 
     if (next > now) {
         be_delay(next - now);
@@ -251,11 +254,18 @@ void gs_score(GameState* gs, int32_t num) {
     }
 }
 
-static void advance(GameState* self, uint64_t clock) {
-    uint64_t lag = clock - self->prev;
-    self->phase = fmodf(self->phase + ANIM_SPEED * (float) lag, 1.0f);
-    self->lag = lag;
-    self->prev = clock;
+static bool advance_clock(GameState* self, double timestamp) {
+    int64_t now = (int64_t) timestamp;
+    int64_t lag = now - self->prev;
+    self->prev = now;
+
+    if (lag > 0 && lag < MAX_LAG) {
+        self->phase = fmodf(self->phase + ANIM_SPEED * (float) lag, 1.0f);
+        self->lag = lag; 
+        return true;
+    }
+
+    return false;
 }
 
 static void add_sprite(GameState* gs, int16_t x, int16_t y, uint8_t id) {

@@ -11,7 +11,7 @@ int am_init(void);
 #ifdef WASM_BACKEND
 __attribute__((export_name("am_update")))
 #endif
-int am_update(uint64_t clock);
+int am_update(double timestamp);
 
 void am_quit(void);
 
@@ -31,12 +31,12 @@ int am_init(void) {
     return -1;
 }
 
-int am_update(uint64_t clock) {
+int am_update(double timestamp) {
     if (be == NULL || gs == NULL) { 
         return 0;
     }
 
-    return gs_update(gs, be, clock);
+    return gs_update(gs, be, timestamp);
 }
 
 void am_quit(void) {
@@ -58,11 +58,11 @@ int main(void) {
         return EXIT_FAILURE;
     }
 
-    uint64_t clock = be_get_millis();
+    double time = be_get_millis();
 
-    while (am_update(clock)) {
+    while (am_update(time)) {
         gs_limit_fps(gs);    
-        clock = be_get_millis();
+        time = be_get_millis();
     }
 
     am_quit();
