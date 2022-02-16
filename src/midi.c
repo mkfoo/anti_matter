@@ -178,6 +178,7 @@ void ms_play_track(MidiSeq* self, uint16_t track_id) {
 
 void ms_stop(MidiSeq* self) {
     self->playing = false;
+    self->repeat = 0;
 }
 
 MidiEvent ms_advance(MidiSeq* self) {
@@ -192,6 +193,11 @@ MidiEvent ms_advance(MidiSeq* self) {
         self->next += te.delta;
         self->event = te.event;
         self->playing = te.event.status != END_OF_TRACK;
+
+        if (self->repeat && !self->playing) {
+            ms_play_track(self, self->repeat); 
+        } 
+
         return ret;
     }
 

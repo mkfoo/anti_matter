@@ -1,5 +1,6 @@
 #pragma once
 #include "antimatter.h"
+#include "sound.h"
 
 #ifdef WASM_BACKEND
 
@@ -16,6 +17,7 @@ typedef struct {
     SDL_Renderer* ren;
     SDL_Texture* tex;
     SDL_AudioDeviceID dev;
+    SoundGen* snd;
 } Backend;
 
 #endif
@@ -37,6 +39,7 @@ typedef enum {
     KD_F6,
 } Event;
 
+
 Backend* be_init(void);
 Event be_get_event(Backend* be);
 void be_present(Backend* be);
@@ -44,7 +47,7 @@ void be_blit_tile(Backend* be, int x, int y, int n);
 void be_blit_text(Backend* be, int x, int y, char* str);
 void be_fill_rect(Backend* be, int x, int y, int w, int h, int color);
 void be_draw_line(Backend* be, int x1, int y1, int x2, int y2, int color);
-void be_queue_audio(Backend* be, const int16_t* data, uint32_t len);
+void be_send_audiomsg(Backend* be, int msg);
 uint64_t be_get_millis(void);
 void be_delay(uint32_t dur);
 void be_quit(Backend* be);

@@ -34,6 +34,7 @@ typedef struct {
 
 typedef struct {
     bool playing;
+    uint16_t repeat;
     MidiReader* reader; 
     MidiEvent event;
     uint32_t count;

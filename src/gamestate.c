@@ -8,7 +8,7 @@ static bool advance_clock(GameState* self, double timestamp);
 static void add_sprite(GameState* gs, int16_t x, int16_t y, uint8_t id);
 static void set_sprite_pos(GameState* gs, int16_t x, int16_t y, uint8_t id);
 static void add_wall(GameState* gs, int16_t x, int16_t y, uint8_t tile);
-static bool check_overlap(GameState* gs, Sprite* s1, Sprite* s2);
+static bool check_overlap(GameState* gs, Backend* be, Sprite* s1, Sprite* s2);
 static bool check_los(GameState* gs, Sprite* s1, Sprite* s2);
 static void decorate(Backend* be);
 static void render_stats(GameState* gs, Backend* be);
@@ -18,14 +18,9 @@ static Adjacent find_adjacent(GameState* gs, Sprite* s, Delta d);
 GameState* gs_init(void) {
     GameState* gs = calloc(1, sizeof(GameState));
     LOG_ERR(gs == NULL, "alloc failure");
-
-    gs->sound = sg_init();
-    LOG_ERR(gs->sound == NULL, "sound error");
-
     gs->high = 1000;
     add_sprite(gs, 0, 0, ID_NIL);
     gs_set_scene(gs, sc_splash, 5); 
-    sg_play(gs->sound, 0);
     return gs;
 }
 
@@ -46,7 +41,6 @@ bool gs_update(GameState* gs, Backend* be, double timestamp) {
         be_present(be);
         SceneFn* scene = gs->scene;
         bool retval = scene(gs, be);
-        sg_generate(gs->sound, be, gs->lag);
         return retval;
     }
 
@@ -126,7 +120,7 @@ void gs_adv_state(GameState* gs) {
     }
 }
 
-void gs_post_update(GameState* gs) {
+void gs_post_update(GameState* gs, Backend* be) {
     remove_destroyed(gs);
 
     Sprite* anti = &gs->sprites[ID_ANTI];
@@ -136,28 +130,29 @@ void gs_post_update(GameState* gs) {
         destroy_sprite(anti);
         destroy_sprite(matter);
         gs_set_scene(gs, sc_death1, 2);
-        sg_stop(gs->sound);
-        sg_play(gs->sound, 6);
+        be_send_audiomsg(be, MSG_STOP);
+        be_send_audiomsg(be, MSG_PLAY | 6);
         return;
     } 
 
     bool lose = false;
 
-    lose |= check_overlap(gs, gs->adj_a.front, gs->adj_m.front);
-    lose |= check_overlap(gs, gs->adj_a.front, gs->adj_a.next);
-    lose |= check_overlap(gs, gs->adj_m.front, gs->adj_m.next);
+    lose |= check_overlap(gs, be, gs->adj_a.front, gs->adj_m.front);
+    lose |= check_overlap(gs, be, gs->adj_a.front, gs->adj_a.next);
+    lose |= check_overlap(gs, be, gs->adj_m.front, gs->adj_m.next);
 
     if (is_aligned(anti) && is_aligned(matter)) {
         lose |= check_los(gs, anti, matter);
 
         if (gs->to_clear <= 0 && !lose) {
             gs_set_scene(gs, sc_level_clear, 0);
-            sg_stop(gs->sound);
+            be_send_audiomsg(be, MSG_STOP);
+            be_send_audiomsg(be, MSG_REPEAT | MSG_PLAY | 10);
             return;
         }
     }
 
-    check_overlap(gs, anti, matter);
+    check_overlap(gs, be, anti, matter);
 }
 
 void gs_swap_sprites(GameState* gs) {
@@ -168,7 +163,7 @@ void gs_swap_sprites(GameState* gs) {
     s2->p = p1; 
 }
 
-void gs_move_pcs(GameState* gs, int8_t dx, int8_t dy) {
+void gs_move_pcs(GameState* gs, Backend* be, int8_t dx, int8_t dy) {
     Sprite* anti = &gs->sprites[ID_ANTI];
     Sprite* matter = &gs->sprites[ID_MATTER];
     Delta forward = { dx, dy };
@@ -181,7 +176,7 @@ void gs_move_pcs(GameState* gs, int8_t dx, int8_t dy) {
         if (can_move_both(&gs->adj_a, &gs->adj_m)) {
             move_sprite(anti, &gs->adj_a, backward);
             move_sprite(matter, &gs->adj_m, forward);
-            sg_play(gs->sound, 5);
+            be_send_audiomsg(be, MSG_PLAY | 5);
         }
     }
 }
@@ -242,7 +237,6 @@ void gs_render_sprites(GameState* gs, Backend* be) {
 }
 
 void gs_quit(GameState* gs) {
-    sg_quit(gs->sound);
     free(gs);
 }
 
@@ -291,20 +285,20 @@ static void add_wall(GameState* gs, int16_t x, int16_t y, uint8_t tile) {
     gs->n_sprites++;
 }
 
-static bool check_overlap(GameState* gs, Sprite* s1, Sprite* s2) {
+static bool check_overlap(GameState* gs, Backend* be, Sprite* s1, Sprite* s2) {
     if (is_overlapping(s1, s2)) {
         if (has_flag(s1, F_UNSTABLE) || has_flag(s2, F_UNSTABLE)) {
             s1->tile = 41;
             s2->tile = 41;
             gs_set_scene(gs, sc_death2, 2);
-            sg_stop(gs->sound);
-            sg_play(gs->sound, 7);
+            be_send_audiomsg(be, MSG_STOP);
+            be_send_audiomsg(be, MSG_PLAY | 7);
             return true;
         } else {
             gs_set_scene(gs, sc_wait, 1);
             destroy_sprite(s1);
             destroy_sprite(s2);
-            sg_play(gs->sound, 9);
+            be_send_audiomsg(be, MSG_PLAY | 9);
         }
     }
 

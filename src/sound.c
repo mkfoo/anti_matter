@@ -26,6 +26,10 @@ static void advance_rng(Channel* self, size_t i);
 static int16_t gen_sample(Channel* self);
 static void handle_midi_event(SoundGen* self, MidiEvent e);
 static void handle_cc(SoundGen* self, uint8_t chn, uint8_t cc, uint8_t val);
+static void play(SoundGen* self, uint16_t track_id);
+static void stop(SoundGen* self);
+static void change_vol(SoundGen* self, int16_t delta);
+static void toggle_mute(SoundGen* self); 
 
 static void reset_env(Channel* self) {
     self->env_phase = (self->env_step < 0) * ENV_PERIOD;
@@ -94,15 +98,53 @@ static void handle_cc(SoundGen* self, uint8_t chn, uint8_t cc, uint8_t val) {
     }
 }
 
+static void play(SoundGen* self, uint16_t track_id) {
+    if (!self->midi->playing) {
+        ms_play_track(self->midi, track_id);
+
+        for (size_t c = 0; c < 3; c++) {
+            self->chans[c].rng_period = 0;
+        }
+    }
+}
+
+static void stop(SoundGen* self) {
+    if (self->midi->playing) {
+        ms_stop(self->midi);
+    }
+
+    for (size_t c = 0; c < 3; c++) {
+        self->chans[c].vel = 0;
+    }
+}
+
+static void change_vol(SoundGen* self, int16_t delta) {
+    int16_t new_vol = self->vol + delta;
+
+    if (new_vol > MAX_VOL) {
+        new_vol = MAX_VOL;
+    } else if (new_vol < 0) {
+        new_vol = 0;
+    }
+
+    self->vol = new_vol;
+}
+
+static void toggle_mute(SoundGen* self) {
+    if (self->vol != 0) {
+        self->prev_vol = self->vol;
+        self->vol = 0;
+    } else {
+        self->vol = self->prev_vol;
+    }
+}
+
 SoundGen* sg_init(void) {
     SoundGen* self = calloc(1, sizeof(SoundGen));
     LOG_ERR(self == NULL, "alloc failure");
 
     self->vol = MAX_VOL / 2;
     self->prev_vol = MAX_VOL / 2;
-
-    self->buf = calloc(BUF_LEN, sizeof(int16_t));
-    LOG_ERR(self->buf == NULL, "alloc failure");
 
     self->midi = ms_init();
     LOG_ERR(self->midi == NULL, "sequencer error");
@@ -115,43 +157,36 @@ SoundGen* sg_init(void) {
     return self;
 }
 
-void sg_play(SoundGen* self, uint16_t track_id) {
-    if (!self->midi->playing) {
-        ms_play_track(self->midi, track_id);
+void sg_handle_message(SoundGen* self, int msg) {
+    switch (msg) {
+        case MSG_STOP:
+            stop(self);
+            break;
+        case MSG_MUTE:
+            toggle_mute(self);
+            break;
+        case MSG_VOL_UP:
+            change_vol(self, 1);
+            break;
+        case MSG_VOL_DOWN:
+            change_vol(self, -1);
+            break;
+        default:
+            if (msg & MSG_PLAY) {
+                play(self, msg & 0x7f);
+            }
 
-        for (size_t c = 0; c < 3; c++) {
-            self->chans[c].rng_period = 0;
-        }
+            if (msg & MSG_REPEAT) {
+                self->midi->repeat = msg & 0x7f; 
+            }
     }
 }
 
-void sg_stop(SoundGen* self) {
-    if (self->midi->playing) {
-        ms_stop(self->midi);
-    }
-
-    for (size_t c = 0; c < 3; c++) {
-        self->chans[c].vel = 0;
-    }
-}
-
-bool sg_is_playing(SoundGen* self) {
-    return self->midi->playing;
-}
-
-void sg_generate(SoundGen* self, Backend* be, int64_t lag) {
-    static size_t overrun = 0;
+void sg_generate_i16(SoundGen* self, uint8_t* stream, int len) {
+    int16_t* buf = (int16_t*) stream; 
+    size_t smpls = len / sizeof(int16_t);
     MidiEvent event;
     int16_t out;
-
-    float fsmpls = SAMPLE_RATE / 1000.0f * (float) lag;
-    size_t smpls = (size_t) ceilf(fsmpls);
-    overrun += smpls - (size_t) floorf(fsmpls); 
-    smpls -= overrun > 1;
-    overrun -= overrun > 1; 
-
-    if (smpls > BUF_LEN) 
-        smpls = BUF_LEN;
 
     for (size_t i = 0; i < smpls; i++) {
         do {
@@ -167,35 +202,11 @@ void sg_generate(SoundGen* self, Backend* be, int64_t lag) {
             out += gen_sample(&self->chans[c]);
         }
 
-        self->buf[i] = out * self->vol;
-    }
-
-    uint32_t len = smpls * sizeof(int16_t);
-    be_queue_audio(be, self->buf, len);
-}
-
-void sg_change_vol(SoundGen* self, int16_t delta) {
-    int16_t new_vol = self->vol + delta;
-
-    if (new_vol > MAX_VOL) {
-        new_vol = MAX_VOL;
-    } else if (new_vol < 0) {
-        new_vol = 0;
-    }
-
-    self->vol = new_vol;
-}
-
-void sg_toggle_mute(SoundGen* self) {
-    if (self->vol != 0) {
-        self->prev_vol = self->vol;
-        self->vol = 0;
-    } else {
-        self->vol = self->prev_vol;
+        buf[i] = out * self->vol;
     }
 }
 
 void sg_quit(SoundGen* self) {
-    free(self->buf);
+    ms_quit(self->midi);
     free(self);
 }

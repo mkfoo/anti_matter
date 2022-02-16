@@ -3,7 +3,7 @@
 
 static void render_title(Backend* be, int x0, int y);
 static void fade_effect(Backend* be, float phase, int color);
-static void lose_life(GameState* gs);
+static void lose_life(GameState* gs, Backend* be);
 
 static void render_title(Backend* be, int x0, int y) {
     for (int i = 0; i < 8; i++) {
@@ -23,15 +23,15 @@ static void fade_effect(Backend* be, float phase, int color) {
     }
 }
 
-static void lose_life(GameState* gs) {
+static void lose_life(GameState* gs, Backend* be) {
     gs->lives -= 1;
 
     if (gs->lives > 0) {
         gs_load_level(gs);
         gs_set_scene(gs, sc_start_level, 2);
     } else {
-        gs_set_scene(gs, sc_game_over, 0);
-        sg_play(gs->sound, 8);
+        gs_set_scene(gs, sc_game_over, 12);
+        be_send_audiomsg(be, MSG_PLAY | 8);
     }
 }
 
@@ -54,6 +54,7 @@ bool sc_splash(GameState* gs, Backend* be) {
 
     if (phase == 1.0f) {
         gs_set_scene(gs, sc_title_anim, 2);
+        be_send_audiomsg(be, MSG_REPEAT | MSG_PLAY | 1);
     }
 
     return true;
@@ -70,8 +71,6 @@ bool sc_title_anim(GameState* gs, Backend* be) {
         render_title(be, x0 + (int) x, y0 - (int) y);
         render_title(be, x0 - (int) x, y0 + (int) y);
     }
-
-    sg_play(gs->sound, 1);
 
     if (phase == 1.0f) {
         gs_set_scene(gs, sc_title_move, 1);
@@ -103,7 +102,6 @@ bool sc_title(GameState* gs, Backend* be) {
     be_blit_text(be, 60 + 88, 24, high);
     be_blit_text(be, 72, 160, "(c) 2020 mkfoo");
     render_title(be, 64, 56);
-    sg_play(gs->sound, 1);
 
     if (gs_phase(gs) > 0.25f) {
         be_blit_text(be, 72, 112, "PUSH SPACE KEY");
@@ -112,16 +110,17 @@ bool sc_title(GameState* gs, Backend* be) {
     switch(be_get_event(be)) {
         case KD_SPC:
             gs_set_scene(gs, sc_fade_out, 2);
-            gs->sound->prev_vol = gs->sound->vol;
+            be_send_audiomsg(be, MSG_MUTE);
+            be_send_audiomsg(be, MSG_MUTE);
             break;
         case KD_F2:
-            sg_toggle_mute(gs->sound);
+            be_send_audiomsg(be, MSG_MUTE);
             break;
         case KD_F5:
-            sg_change_vol(gs->sound, -1);
+            be_send_audiomsg(be, MSG_VOL_DOWN);
             break;
         case KD_F6:
-            sg_change_vol(gs->sound, 1);
+            be_send_audiomsg(be, MSG_VOL_UP);
             break;
         case KD_ESC:
         case QUIT:
@@ -139,7 +138,7 @@ bool sc_fade_out(GameState* gs, Backend* be) {
     render_title(be, 64, 56);
 
     if (((int) (phase * 100.0f)) % 5 == 0) {
-        sg_change_vol(gs->sound, -1);
+        be_send_audiomsg(be, MSG_VOL_DOWN);
     }
 
     if (phase == 1.0f) {
@@ -148,8 +147,8 @@ bool sc_fade_out(GameState* gs, Backend* be) {
         gs->score = 0;
         gs_load_level(gs);
         gs_set_scene(gs, sc_start_level, 2);
-        sg_stop(gs->sound);
-        sg_toggle_mute(gs->sound);
+        be_send_audiomsg(be, MSG_STOP);
+        be_send_audiomsg(be, MSG_MUTE);
     }
 
     return true;
@@ -157,7 +156,7 @@ bool sc_fade_out(GameState* gs, Backend* be) {
 
 bool sc_start_level(GameState* gs, Backend* be) {
     be_get_event(be);
-    sg_play(gs->sound, 2);
+    be_send_audiomsg(be, MSG_PLAY | 2);
     gs_render_sprites(gs, be);
     float phase = gs_phase(gs);
     fade_effect(be, phase, 1);
@@ -165,8 +164,8 @@ bool sc_start_level(GameState* gs, Backend* be) {
 
     if (phase == 1.0f) {
         gs_set_scene(gs, sc_playing, 0);
-        sg_stop(gs->sound);
-        sg_play(gs->sound, 3);
+        be_send_audiomsg(be, MSG_STOP);
+        be_send_audiomsg(be, MSG_PLAY | 3);
     }
 
     return true;
@@ -176,43 +175,43 @@ bool sc_playing(GameState* gs, Backend* be) {
     gs_adv_state(gs);
     gs_render_sprites(gs, be);
     gs_render_default(gs, be);
-    gs_post_update(gs);
+    gs_post_update(gs, be);
 
     switch(be_get_event(be)) {
         case KD_UP:
-            gs_move_pcs(gs, 0, -1);
+            gs_move_pcs(gs, be, 0, -1);
             break;
         case KD_RIGHT:
-            gs_move_pcs(gs, 1, 0);
+            gs_move_pcs(gs, be, 1, 0);
             break;
         case KD_LEFT:
-            gs_move_pcs(gs, -1, 0);
+            gs_move_pcs(gs, be, -1, 0);
             break;
         case KD_DOWN:
-            gs_move_pcs(gs, 0, 1);
+            gs_move_pcs(gs, be, 0, 1);
             break;
         case KD_SPC:
             gs_set_scene(gs, sc_swap, 1);
-            sg_play(gs->sound, 11);
+            be_send_audiomsg(be, MSG_PLAY | 11);
             gs->sprites[ID_ANTI].tile += 4;
             gs->sprites[ID_MATTER].tile += 4;
             break;
         case KD_ESC:
             gs_set_scene(gs, sc_paused, 0);
-            sg_stop(gs->sound);
-            sg_play(gs->sound, 4);
+            be_send_audiomsg(be, MSG_STOP);
+            be_send_audiomsg(be, MSG_PLAY | 4);
             break;
         case KD_F1:
             gs->energy = 0;
             break;
         case KD_F2:
-            sg_toggle_mute(gs->sound);
+            be_send_audiomsg(be, MSG_MUTE);
             break;
         case KD_F5:
-            sg_change_vol(gs->sound, -1);
+            be_send_audiomsg(be, MSG_VOL_DOWN);
             break;
         case KD_F6:
-            sg_change_vol(gs->sound, 1);
+            be_send_audiomsg(be, MSG_VOL_UP);
             break;
         case QUIT:
             return false;
@@ -231,8 +230,8 @@ bool sc_paused(GameState* gs, Backend* be) {
         case KD_SPC:
         case KD_ESC:
             gs_set_scene(gs, sc_playing, 0);
-            sg_stop(gs->sound);
-            sg_play(gs->sound, 3);
+            be_send_audiomsg(be, MSG_STOP);
+            be_send_audiomsg(be, MSG_PLAY | 3);
             break;
         case KD_F1:
             gs->energy = 0;
@@ -286,20 +285,19 @@ bool sc_level_clear(GameState* gs, Backend* be) {
     be_get_event(be);
     gs_render_sprites(gs, be);
     gs_render_default(gs, be);
-    sg_play(gs->sound, 10);
     gs->energy -= 8;
 
     if (gs->energy > 0) {
         gs_score(gs, 1);
         gain++;
     } else {
-        sg_stop(gs->sound);
+        be_send_audiomsg(be, MSG_STOP);
         gs->energy = 0;
         int32_t bonus = gs->score / BONUS_LIMIT - (gs->score - gain) / BONUS_LIMIT;
 
         if (bonus > 0) {
             gs->lives += bonus;
-            sg_play(gs->sound, 12);
+            be_send_audiomsg(be, MSG_PLAY | 12);
         }
 
         gs_set_scene(gs, sc_clear_wait, 2);
@@ -334,7 +332,7 @@ bool sc_death1(GameState* gs, Backend* be) {
     }
 
     if (gs_phase(gs) == 1.0f) {
-        lose_life(gs);
+        lose_life(gs, be);
     }
 
     return true;
@@ -355,7 +353,7 @@ bool sc_death2(GameState* gs, Backend* be) {
     gs_render_default(gs, be);
 
     if (phase == 1.0f) {
-        lose_life(gs);
+        lose_life(gs, be);
     }
 
     return true;
@@ -363,11 +361,14 @@ bool sc_death2(GameState* gs, Backend* be) {
 
 bool sc_game_over(GameState* gs, Backend* be) {
     be_get_event(be);
+    float phase = gs_phase(gs);
     be_blit_text(be, 64, 92, "GAME OVER");
     gs_render_default(gs, be);
 
-    if (!sg_is_playing(gs->sound)) {
+    if (phase == 1.0f) {
         gs_set_scene(gs, sc_title_anim, 2);
+        be_send_audiomsg(be, MSG_STOP);
+        be_send_audiomsg(be, MSG_REPEAT | MSG_PLAY | 1);
     }
 
     return true;

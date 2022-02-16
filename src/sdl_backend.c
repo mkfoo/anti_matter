@@ -1,6 +1,7 @@
 #include "backend.h"
 #include "texture_data.h"
 
+void am_audio_callback(void* userdata, uint8_t* stream, int len);
 static Event be_get_keydown(Backend* be, SDL_Keycode key);
 static void be_toggle_fullscreen(Backend* be);
 static void be_toggle_scale(Backend* be);
@@ -24,19 +25,10 @@ const SDL_Color COLORS[16] = {
     {0xff, 0xff, 0xff, 0xff}, // WHITE
 };
 
-const SDL_AudioSpec SPEC_WANTED = {
-    .freq = SAMPLE_RATE,
-    .format = AUDIO_S16SYS,
-    .channels = 1,
-    .silence = 0,
-    .samples = BUF_LEN,
-    .size = 0,
-    .callback = NULL,
-    .userdata = NULL,
-};
 
 Backend* be_init(void) {
-    static SDL_AudioSpec spec_received = { 0 };
+    SDL_AudioSpec spec_wanted;
+    SDL_AudioSpec spec_received = { 0 };
     int err = 0;
 
     Backend* be = calloc(1, sizeof(Backend));
@@ -74,12 +66,31 @@ Backend* be_init(void) {
     LOG_ERR(be->tex == NULL, SDL_GetError());
     SDL_FreeSurface(surf);
 
-    be->dev = SDL_OpenAudioDevice(NULL, 0, &SPEC_WANTED, &spec_received, 0);
+    be->snd = sg_init();
+    LOG_ERR(be->snd == NULL, "sg_init failed");
+
+    spec_wanted = (SDL_AudioSpec) {
+        .freq = SAMPLE_RATE,
+        .format = AUDIO_S16SYS,
+        .channels = 1,
+        .silence = 0,
+        .samples = BUF_LEN,
+        .size = 0,
+        .callback = am_audio_callback,
+        .userdata = be->snd,
+    };
+
+    be->dev = SDL_OpenAudioDevice(NULL, 0, &spec_wanted, &spec_received, 0);
     LOG_ERR(be->dev == 0, SDL_GetError());
 
     SDL_PauseAudioDevice(be->dev, 0);
     be_toggle_scale(be);
     return be;
+}
+
+void am_audio_callback(void* userdata, uint8_t* stream, int len) {
+    SoundGen* snd = (SoundGen*) userdata;
+    sg_generate_i16(snd, stream, len);
 }
 
 void be_quit(Backend* be) {
@@ -176,8 +187,10 @@ void be_fill_rect(Backend* be, int x, int y, int w, int h, int color) {
     SDL_RenderFillRect(be->ren, &dst);
 }
 
-void be_queue_audio(Backend* be, const int16_t* data, uint32_t len) {
-    SDL_QueueAudio(be->dev, data, len);
+void be_send_audiomsg(Backend* be, int msg) {
+    SDL_LockAudioDevice(be->dev);
+    sg_handle_message(be->snd, msg);
+    SDL_UnlockAudioDevice(be->dev);
 }
 
 void be_draw_line(Backend* be, int x1, int y1, int x2, int y2, int color) {

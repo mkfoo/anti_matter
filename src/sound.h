@@ -1,10 +1,20 @@
+#pragma once
+
 #include <stdint.h>
 #include <stdbool.h>
 #include <stdlib.h>
 #include <math.h>
 #include "antimatter.h"
-#include "backend.h"
 #include "midi.h"
+
+typedef enum {
+    MSG_STOP,
+    MSG_MUTE,
+    MSG_VOL_DOWN,
+    MSG_VOL_UP,
+    MSG_PLAY = 1 << 7, 
+    MSG_REPEAT = 1 << 8,
+} AudioMessage;
 
 typedef struct {
     int16_t vel;
@@ -19,16 +29,11 @@ typedef struct {
 typedef struct {
     int16_t vol;
     int16_t prev_vol;
-    int16_t* buf;
     MidiSeq* midi;
     Channel chans[3]; 
 } SoundGen;
 
 SoundGen* sg_init(void);
-void sg_play(SoundGen* self, uint16_t track_id);
-void sg_stop(SoundGen* self);
-bool sg_is_playing(SoundGen* self);
-void sg_generate(SoundGen* self, Backend* be, int64_t lag);
-void sg_change_vol(SoundGen* self, int16_t delta);
-void sg_toggle_mute(SoundGen* self); 
+void sg_handle_message(SoundGen* self, int msg);
+void sg_generate_i16(SoundGen* self, uint8_t* stream, int len);
 void sg_quit(SoundGen* self);
