@@ -24,10 +24,11 @@ int am_init(void) {
             return -1; 
         }
 
+        be_send_audiomsg(be, MSG_PLAY);
+
         return 0;
     }
 
-    printf("error: tried to call init twice");
     return -1;
 }
 

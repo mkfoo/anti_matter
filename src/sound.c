@@ -1,4 +1,3 @@
-#include <stdio.h>
 #include "sound.h"
 
 #define ENV_PERIOD 32000
@@ -203,6 +202,30 @@ void sg_generate_i16(SoundGen* self, uint8_t* stream, int len) {
         }
 
         buf[i] = out * self->vol;
+    }
+}
+
+void sg_generate_f32(SoundGen* self, float* buf, int len) {
+    size_t smpls = (size_t) len;
+    MidiEvent event;
+    int16_t out;
+
+    for (size_t i = 0; i < smpls; i++) {
+        do {
+            event = ms_advance(self->midi);
+            handle_midi_event(self, event);
+        } while (event.status);
+
+        out = 0;
+
+        for (size_t c = 0; c < 3; c++) {
+            advance_env(&self->chans[c], i);
+            advance_rng(&self->chans[c], i);
+            out += gen_sample(&self->chans[c]);
+        }
+
+        float fout = (float) (out * self->vol);
+        buf[i] = fout / 32767.0f;
     }
 }
 

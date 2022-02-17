@@ -13,12 +13,11 @@
 #define MAP_W 11
 #define MAX_LEVEL 5
 #define MAX_SPRITES 122
-#define MAX_LAG 200
+#define MAX_LAG 800
 #define MAX_X 176
 #define MAX_Y 176
 #define MOVEMENT_SPEED 0.12f
 #define MS_PER_FRAME 20
-#define MS_PER_TICK 6
 #define SAMPLE_RATE 44100
 #define SAMPLES_PER_TICK 200
 #define START_LEVEL 0
@@ -34,10 +33,21 @@
 #define WINDOW_TITLE "ANTI/MATTER"
 #define WINDOW_W 256
 
+#ifdef WASM_BACKEND
+
+#define LOG_ERR(expr, msg) \
+    if (expr) { \
+        return NULL; \
+    }
+
+#else
+
 #include <stdio.h>
 
 #define LOG_ERR(expr, msg) \
     if (expr) { \
-        printf("%s [file %s, line %d]\n", (msg), __FILE__, __LINE__); \
+        fprintf(stderr, "%s [file %s, line %d]\n", (msg), __FILE__, __LINE__); \
         return NULL; \
     }
+
+#endif

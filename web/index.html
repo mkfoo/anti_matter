@@ -3,11 +3,21 @@
     <head>
         <meta charset="utf-8">
         <title>ANTI/MATTER</title>
+        <style>
+            body {
+                height: 100vh;
+                background-color: grey;
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+                align-items: center;    
+            }
+        </style>
     </head>
     <body>
         <canvas id="canvas" width="256" height="192"></canvas>
         <script type="module">
-            import run from "./wasm_backend.js";
+            import run from "./antimatter.js";
             run();
         </script>
     </body>

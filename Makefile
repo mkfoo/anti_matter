@@ -8,8 +8,9 @@ OBJECTS = main.o gamestate.o scene.o sdl_backend.o sprite.o sound.o midi.o
 WCC = zig cc
 WPROGRAM = antimatter.wasm
 WCFLAGS = -Weverything --target=wasm32-wasi -DWASM_BACKEND -std=c17
-WOBJECTS = main.wasm gamestate.wasm scene.wasm sprite.wasm \
-		   sound.wasm midi.wasm wasm_backend.wasm
+WOBJECTS = main.wasm gamestate.wasm scene.wasm sprite.wasm wasm_backend.wasm
+WAPROGRAM = antimatter_audio.wasm
+WAUDIO = wasm_audio.wasm sound.wasm midi.wasm
 
 HEADERS = antimatter.h backend.h gamestate.h level_data.h \
 		  scene.h sprite.h sound.h midi.h texture_data.h midi_data.h
@@ -20,13 +21,19 @@ $(PROGRAM) : $(OBJECTS)
 $(OBJECTS) : %.o: %.c $(HEADERS)
 	$(CC) -c $(CFLAGS) $(OFLAGS) $< -o $@
 
-$(WPROGRAM) : $(WOBJECTS)
+$(WPROGRAM) : $(WOBJECTS) $(WAPROGRAM)
 	$(WCC) $(WCFLAGS) $(OFLAGS) $(WOBJECTS) -o $(WPROGRAM)
 
 $(WOBJECTS) : %.wasm: %.c $(HEADERS)
 	$(WCC) -c $(WCFLAGS) $(OFLAGS) $< -o $@
 
+$(WAPROGRAM) : $(WAUDIO)
+	$(WCC) $(WCFLAGS) $(OFLAGS) $(WAUDIO) -o $(WAPROGRAM) 
+
+$(WAUDIO) : %.wasm: %.c $(HEADERS)
+	$(WCC) -c $(WCFLAGS) $(OFLAGS) $< -o $@
+
 .PHONY : clean
 clean :
-	rm -f $(PROGRAM) $(WPROGRAM) $(OBJECTS) $(WOBJECTS)
+	rm -f $(PROGRAM) *.o *.wasm
 

@@ -25,7 +25,6 @@ const SDL_Color COLORS[16] = {
     {0xff, 0xff, 0xff, 0xff}, // WHITE
 };
 
-
 Backend* be_init(void) {
     SDL_AudioSpec spec_wanted;
     SDL_AudioSpec spec_received = { 0 };

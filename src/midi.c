@@ -1,5 +1,4 @@
 #include <stdlib.h>
-#include <stdio.h>
 #include <assert.h>
 #include "antimatter.h"
 #include "midi.h"
@@ -138,7 +137,6 @@ static MidiEvent read_cvm(MidiReader* self, uint8_t byte1) {
         case CHANNEL_AFTERTOUCH:
             break;
         default:
-            fprintf(stderr, "warning: unrecognized MIDI event %x\n", self->status);
             self->status = END_OF_TRACK;
     }
 

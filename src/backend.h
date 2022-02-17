@@ -23,8 +23,8 @@ typedef struct {
 #endif
 
 typedef enum {
-    QUIT,
     IDLE,
+    QUIT,
     KD_ESC,
     KD_UP,
     KD_DOWN,
@@ -37,6 +37,7 @@ typedef enum {
     KD_F4,
     KD_F5,
     KD_F6,
+    KD_F10,
 } Event;
 
 

@@ -36,4 +36,5 @@ typedef struct {
 SoundGen* sg_init(void);
 void sg_handle_message(SoundGen* self, int msg);
 void sg_generate_i16(SoundGen* self, uint8_t* stream, int len);
+void sg_generate_f32(SoundGen* self, float* buf, int len);
 void sg_quit(SoundGen* self);
