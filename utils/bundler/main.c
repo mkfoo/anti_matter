@@ -73,7 +73,7 @@ static Buf get_pixel_data(Buf in) {
 static void write_file(const char* path, const char* name, Buf b) {
     FILE* file = fopen(path, "w");
     assert(file != NULL);
-    fprintf(file, "const uint8_t %s[%lu] = {\n", name, b.len);
+    fprintf(file, "static const uint8_t %s[%lu] = {\n", name, b.len);
 
     for (size_t i = 0; i < b.len; i++) {
         fprintf(file, "%3u,", b.data[i]);
@@ -89,7 +89,7 @@ static void write_file(const char* path, const char* name, Buf b) {
 
 int main(void) {
     Buf bmp = load_file("../../assets/graphics.bmp");
-    Buf mid = load_file("../../assets/test.mid");
+    Buf mid = load_file("../../assets/music.mid");
     Buf pixels = get_pixel_data(bmp);
     write_file("../../src/texture_data.h", "TEXTURE_DATA", pixels);
     write_file("../../src/midi_data.h", "MIDI_DATA", mid);

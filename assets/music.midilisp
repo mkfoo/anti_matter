@@ -17,42 +17,28 @@
     (lambda (d n)
         (d (st-note (+ n (* 12 (rand 0 4))) d d 64))))
 
-(define trp
-    (lambda (n i)
-        (+ (- n (% n 12)) (% (+ n i) 12))))
-
-(define seq (' 7 7 7 7 7 7 7 7 1 1 1 1))
+(define ch0 (' G3 D3  A3  E3  B3  F#3 B3  C#3 D#2 F2  G3 F#3))
+(define ch1 (' B2 F#2 C#2 G#2 D#2 A#2 E2  F#3 G#2 A#2 D2 D2))
+(define ch2 (' E2 B2  F#2 C#2 G#2 D#2 G#2 A#3 C3  D3  A2 A2))
 
 (cc7 80 44)
 (4 (st-arp 16 E3))
-(define bn G3)
-(for-each seq 
-    (lambda (i)
-        (2 (st-arp 16 bn))
-        (set bn (trp bn i)))) 
+(for-each ch0 (lambda (i) (2 (st-arp 16 i)))) 
 
 (set chn 1)
 (cc7 80 44)
 (set st-note (init-st))
 (4 (st-arp 8 E2))
-(set bn B2)
-(for-each seq 
-    (lambda (i)
-        (2 (st-arp 8 bn))
-        (set bn (trp bn i)))) 
+(for-each ch1 (lambda (i) (2 (st-arp 8 i)))) 
 
 (set chn 2)
 (cc7 80 65)
-(on E2 0 74)
+(set st-note (init-st))
+(on E2 0 64)
 (4 (rest 1))
 (off E2 0 0)
 (cc7 80 58)
-(set st-note (init-st))
-(set bn E2)
-(for-each seq 
-    (lambda (i)
-        (2 (st-arp 4 bn))
-        (set bn (trp bn i)))) 
+(for-each ch2 (lambda (i) (2 (st-arp 4 i))))
 
 ; start
 (set trk 2)
