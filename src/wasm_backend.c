@@ -6,14 +6,20 @@
 #include "backend.h"
 #include "texture_data.h"
 
+typedef struct {
+    uint8_t* buf;
+    int32_t width;
+    int32_t height;
+} PixelData;
+
+__attribute__((export_name("wbe_load_pixel_data")))
+PixelData* wbe_load_pixel_data(void);
+
 __attribute__((import_name("wbe_get_keydown")))
 int wbe_get_keydown(void);
 
-__attribute__((import_name("wbe_upload_texture")))
-void wbe_upload_texture(void* ptr, int width, int height);
-
-__attribute__((import_name("wbe_blit_to_canvas")))
-void wbe_blit_to_canvas(int sx, int sy, int sw, int sh, int dx, int dy);
+__attribute__((import_name("wbe_texture_copy")))
+void wbe_texture_copy(int sx, int sy, int sw, int sh, int dx, int dy);
 
 __attribute__((import_name("wbe_fill_rect")))
 void wbe_fill_rect(int x, int y, int w, int h, int c);
@@ -27,21 +33,18 @@ void wbe_toggle_scale_factor(void);
 __attribute__((import_name("wbe_send_audiomsg")))
 void wbe_send_audiomsg(int msg);
 
-typedef struct {
-    void* ptr;
-    size_t len;
-} Buf;
+PixelData* wbe_load_pixel_data(void) {
+    PixelData* pd = calloc(1, sizeof(PixelData));
+    LOG_ERR(pd == NULL, "alloc failure"); 
+    pd->buf = (uint8_t*) TEXTURE_DATA;
+    pd->width = TEXTURE_W;
+    pd->height = TEXTURE_H; 
+    return pd;
+}
 
 Backend* be_init(void) {
     Backend* be = calloc(1, sizeof(Backend));
     LOG_ERR(be == NULL, "alloc failure"); 
-
-    Buf* buf = calloc(1, sizeof(Buf));
-    LOG_ERR(be == NULL, "alloc failure"); 
-
-    buf->ptr = (void*) TEXTURE_DATA;
-    buf->len = TEXTURE_W * TEXTURE_H; 
-    wbe_upload_texture((void*) buf, TEXTURE_W, TEXTURE_H);
     return be;
 }
 
@@ -66,7 +69,7 @@ void be_present(Backend* be) {
 void be_blit_tile(Backend* be, int x, int y, int n) {
     int sx = n % TILES_PER_ROW * TILE_W;
     int sy = n / TILES_PER_ROW * TILE_H;
-    wbe_blit_to_canvas(sx, sy, TILE_W, TILE_H, x, y); 
+    wbe_texture_copy(sx, sy, TILE_W, TILE_H, x, y); 
     return;
 }
 
@@ -75,7 +78,7 @@ void be_blit_text(Backend* be, int x, int y, char* str) {
         int n = FONT_OFFSET + (int) *str;
         int sx = n % CHARS_PER_ROW * FONT_W;
         int sy = n / CHARS_PER_ROW * FONT_H;
-        wbe_blit_to_canvas(sx, sy, FONT_W, FONT_H, x, y); 
+        wbe_texture_copy(sx, sy, FONT_W, FONT_H, x, y); 
         x += FONT_W;
         str++;
     }
