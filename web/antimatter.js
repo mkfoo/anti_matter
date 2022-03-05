@@ -43,20 +43,28 @@ class WasmGame {
 
     imports = { 
         wasi_snapshot_preview1: {
+            fd_seek: (a) => {},
+            fd_write: (a) => {},
+            fd_close: (a) => {},
             proc_exit: (a) => {},
         },
         env: { 
             wbe_get_keydown: () => { 
                 return this.events.shift() || 0; 
             },
-            wbe_texture_copy: (sx, sy, sw, sh, dx, dy) => {
-                this.renderer.textureCopy(sx, sy, sw, sh, dx, dy);
+            wbe_set_color: (c) => {
+                this.renderer.setColor(c);
             },
-            wbe_fill_rect: (x, y, w, h, c) => {
-                this.renderer.fillRect(x, y, w, h, c);
+            wbe_clear: () => {
+                this.renderer.clear();
             },
-            wbe_draw_line: (x1, y1, x2, y2, c) => {
-                this.renderer.drawLine(x1, y1, x2, y2, c);
+            wbe_texture_copy: (ptr, len) => {
+                const buf = new Float32Array(this.memory, ptr, len);
+                this.renderer.textureCopy(buf);
+            },
+            wbe_draw_lines: (ptr, len) => {
+                const buf = new Float32Array(this.memory, ptr, len);
+                this.renderer.drawLines(buf);
             },
             wbe_toggle_scale_factor: () => {
                 this.renderer.toggleScaleFactor();
@@ -102,8 +110,6 @@ class WasmGame {
         });
 
         const nextFrame = (timestamp) => {
-            this.renderer.clear();
-
             if (this.update(timestamp)) {
                 window.requestAnimationFrame(nextFrame);
             } else {
@@ -161,6 +167,7 @@ class WebGLRenderer {
 
         this.gl = gl;
         this.palette = palette;
+        this.color = 1;
         this.origWidth = width;
         this.origHeight = height;
         this.setScaleFactor(2);
@@ -212,7 +219,7 @@ class WebGLRenderer {
         const gl = this.gl;
         const dstQuad = gl.createBuffer();
         gl.bindBuffer(gl.ARRAY_BUFFER, dstQuad);
-        gl.bufferData(gl.ARRAY_BUFFER, 16 * 4, gl.DYNAMIC_DRAW);
+        gl.bufferData(gl.ARRAY_BUFFER, 16384, gl.DYNAMIC_DRAW);
         gl.vertexAttribPointer(this.attributes.aDstQuad, 4, gl.FLOAT, false, 0, 0);
         gl.enableVertexAttribArray(this.attributes.aDstQuad);
         return { dstQuad };
@@ -244,6 +251,7 @@ class WebGLRenderer {
         gl.activeTexture(gl.TEXTURE0);
         gl.enable(gl.BLEND);
         gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+        gl.clearDepth(1.0); 
         this.initMatrices(tw, th);
         return texture;
     }
@@ -270,28 +278,15 @@ class WebGLRenderer {
         gl.uniformMatrix4fv(this.uniforms.uDstMatrix, false, dstMatrix);
     }
 
-    textureCopy(sx, sy, sw, sh, dx, dy) {
-        const dw = sw;
-        const dh = sh;
+    textureCopy(buf) {
         const gl = this.gl;
-
-        const verts = [
-            dx + dw, dy + dh, sx + sw, sy + sh,
-            dx +  0, dy + dh, sx +  0, sy + sh,
-            dx + dw, dy +  0, sx + sw, sy +  0,
-            dx +  0, dy +  0, sx +  0, sy +  0,
-        ];
-
-        gl.bindBuffer(gl.ARRAY_BUFFER, this.buffers.dstQuad);
-        gl.bufferSubData(gl.ARRAY_BUFFER, 0, new Float32Array(verts));
         gl.useProgram(this.program);
-        gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+        gl.bindBuffer(gl.ARRAY_BUFFER, this.buffers.dstQuad);
+        gl.bufferSubData(gl.ARRAY_BUFFER, 0, buf);
+        gl.drawArrays(gl.TRIANGLE_STRIP, 0, buf.length / 4);
     }
 
-    fillRect(x, y, w, h, c) {
-    }
-
-    drawLine(x1, y1, x2, y2, c) {
+    drawLines(buf) {
     }
 
     toggleScaleFactor() {
@@ -307,6 +302,15 @@ class WebGLRenderer {
         }
     }
 
+    setColor(c) {
+        const gl = this.gl;
+        const r = this.palette[c][0] / 255;
+        const g = this.palette[c][1] / 255;
+        const b = this.palette[c][2] / 255;
+        const a = this.palette[c][3] / 255;
+        gl.clearColor(r, g, b, a); 
+    }
+
     setScaleFactor(sf) {
         const gl = this.gl;
         gl.canvas.width = this.origWidth * sf;
@@ -317,8 +321,6 @@ class WebGLRenderer {
 
     clear() {
         const gl = this.gl;
-        gl.clearColor(0.0, 0.0, 0.0, 1.0); 
-        gl.clearDepth(1.0); 
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
     }
 }
@@ -365,20 +367,38 @@ class CanvasRenderer {
         this.texture = await createImageBitmap(img);
     }
 
-    textureCopy(sx, sy, sw, sh, dx, dy) {
-        this.ctx.drawImage(this.texture, sx, sy, sw, sh, dx, dy, sw, sh);
-    }   
-
-    fillRect(x, y, w, h, c) {
+    setColor(c) {
         this.ctx.fillStyle = this.cssPalette[c];
-        this.ctx.fillRect(x, y, w, h);
+        this.ctx.strokeStyle = this.cssPalette[c];
     }
 
-    drawLine(x1, y1, x2, y2, c) {
+    textureCopy(buf) {
+        console.log("sprites " + buf.length);
+
+        for (let i = 0; i < buf.length; i += 16) {
+            const dx = buf[i + 0];
+            const sx = buf[i + 2];
+            const dy = buf[i + 5];
+            const sy = buf[i + 7];
+            const w = buf[i + 8] - dx;
+            const h = buf[i + 9] - dy;
+            this.ctx.drawImage(this.texture, sx, sy, w, h, dx, dy, w, h);
+        }
+    }   
+
+    drawLines(buf) {
+        console.log("lines " + buf.length);
         this.ctx.beginPath();
-        this.ctx.strokeStyle = this.cssPalette[c];
-        this.ctx.moveTo(x1 + .5, y1 + .5);
-        this.ctx.lineTo(x2 + .5, y2 + .5);
+
+        for (let i = 0; i < buf.length; i += 4) {
+            const x1 = buf[i + 0];
+            const y1 = buf[i + 1];
+            const x2 = buf[i + 2];
+            const y2 = buf[i + 3];
+            this.ctx.moveTo(x1 + .5, y1 + .5);
+            this.ctx.lineTo(x2 + .5, y2 + .5);
+        }
+
         this.ctx.stroke();
     }
 
@@ -405,7 +425,7 @@ class CanvasRenderer {
     }
 
     clear() {
-        this.ctx.clearRect(0, 0, this.origWidth, this.origHeight);
+        this.ctx.fillRect(0, 0, this.origWidth, this.origHeight);
     }
 }
 

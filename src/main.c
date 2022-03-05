@@ -24,6 +24,7 @@ int am_init(void) {
             return -1; 
         }
 
+        be_set_color(be, 4);
         be_send_audiomsg(be, MSG_PLAY);
 
         return 0;

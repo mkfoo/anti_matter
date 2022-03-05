@@ -152,10 +152,17 @@ static Event be_get_keydown(Backend* be, SDL_Keycode key) {
     }
 }
 
+void be_set_color(Backend* be, int color) {
+    SDL_Color c = COLORS[color]; 
+    SDL_SetRenderDrawColor(be->ren, c.r, c.g, c.b, c.a);
+}
+
+void be_clear(Backend* be) {
+    SDL_RenderClear(be->ren);
+}
+
 void be_present(Backend* be) {
     SDL_RenderPresent(be->ren);
-    SDL_SetRenderDrawColor(be->ren, 0, 0, 0, 255);
-    SDL_RenderClear(be->ren);
 }
 
 void be_blit_tile(Backend* be, int x, int y, int n) {
@@ -179,22 +186,13 @@ void be_blit_text(Backend* be, int x, int y, char* str) {
     }
 }
 
-void be_fill_rect(Backend* be, int x, int y, int w, int h, int color) {
-    SDL_Color c = COLORS[color]; 
-    SDL_SetRenderDrawColor(be->ren, c.r, c.g, c.b, c.a);
-    SDL_Rect dst = {x, y, w, h};
-    SDL_RenderFillRect(be->ren, &dst);
-}
-
 void be_send_audiomsg(Backend* be, int msg) {
     SDL_LockAudioDevice(be->dev);
     sg_handle_message(be->snd, msg);
     SDL_UnlockAudioDevice(be->dev);
 }
 
-void be_draw_line(Backend* be, int x1, int y1, int x2, int y2, int color) {
-    SDL_Color c = COLORS[color]; 
-    SDL_SetRenderDrawColor(be->ren, c.r, c.g, c.b, c.a);
+void be_draw_line(Backend* be, int x1, int y1, int x2, int y2) {
     SDL_RenderDrawLine(be->ren, x1, y1, x2, y2);
 }
 

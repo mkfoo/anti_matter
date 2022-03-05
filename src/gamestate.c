@@ -38,9 +38,10 @@ float gs_phase(GameState* self) {
 
 bool gs_update(GameState* gs, Backend* be, double timestamp) {
     if (advance_clock(gs, timestamp)) {
-        be_present(be);
+        be_clear(be);
         SceneFn* scene = gs->scene;
         bool retval = scene(gs, be);
+        be_present(be);
         return retval;
     }
 
@@ -397,7 +398,7 @@ static void decorate(Backend* be) {
 static void render_stats(GameState* gs, Backend* be) {
     static char level[8], high[8], score[8], energy[8], lives[8];
 
-    be_fill_rect(be, 184, 0, 80, 192, 1); 
+//    be_fill_rect(be, 184, 0, 80, 192, 1); 
 
     snprintf(level, 8, "%7d", gs->level);
     snprintf(high, 8, "%7d", gs->high);
