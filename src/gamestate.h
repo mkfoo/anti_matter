@@ -41,4 +41,5 @@ void gs_score(GameState* gs, int32_t n);
 void gs_render_default(GameState* gs, Backend* be);
 void gs_render_sprites(GameState* gs, Backend* be);
 void gs_render_help(GameState* gs, Backend* be);
+void gs_decorate(Backend* be);
 void gs_quit(GameState* gs);

@@ -10,7 +10,6 @@ static void set_sprite_pos(GameState* gs, int16_t x, int16_t y, uint8_t id);
 static void add_wall(GameState* gs, int16_t x, int16_t y, uint8_t tile);
 static bool check_overlap(GameState* gs, Backend* be, Sprite* s1, Sprite* s2);
 static bool check_los(GameState* gs, Sprite* s1, Sprite* s2);
-static void decorate(Backend* be);
 static void render_stats(GameState* gs, Backend* be);
 static void remove_destroyed(GameState* gs);
 static Adjacent find_adjacent(GameState* gs, Sprite* s, Delta d);
@@ -183,8 +182,8 @@ void gs_move_pcs(GameState* gs, Backend* be, int8_t dx, int8_t dy) {
 }
 
 void gs_render_default(GameState* gs, Backend* be) {
+    be_blit_static(be);
     render_stats(gs, be);
-    decorate(be);
 }
 
 void gs_render_help(GameState* gs, Backend* be) {
@@ -360,28 +359,37 @@ static Adjacent find_adjacent(GameState* gs, Sprite* s1, Delta d) {
     return adj;
 }
 
-static void decorate(Backend* be) {
+void gs_decorate(Backend* be) {
     uint8_t t = DECOR_TILE_BASE;
+    be_set_color(be, 1);
+    be_fill_rect(be, 184, 0, 72, 192); 
+
     be_blit_tile(be, 0, 0, t);
+    for (int n = 16; n < 176; n += 16) {
+        be_blit_tile(be, n, 0, t + 4);
+    }
     be_blit_tile(be, 176, 0, t + 1);
-    be_blit_tile(be, 176, 176, t + 2);
+
+    for (int n = 16; n < 176; n += 16) {
+        be_blit_tile(be, 0, n, t + 7);
+    }     
     be_blit_tile(be, 0, 176, t + 3);
 
     for (int n = 16; n < 176; n += 16) {
-        be_blit_tile(be, n, 0, t + 4);
         be_blit_tile(be, n, 176, t + 6);
-        be_blit_tile(be, 0, n, t + 7);
+    }
+    be_blit_tile(be, 176, 176, t + 2);
+
+    for (int n = 16; n < 176; n += 16) {
         be_blit_tile(be, 176, n, t + 5);
     }
-
-    for (int x = 192; x < 240; x += 16) {
-        for (int y = 27; y < 183; y += 26) {
-            be_blit_tile(be, x, y, t + 4);
-        }
-    }
-
     for (int y = 27; y < 183; y += 26) {
         be_blit_tile(be, 176, y, t + 8);
+
+        for (int x = 192; x < 240; x += 16) {
+            be_blit_tile(be, x, y, t + 4);
+        }
+
         be_blit_tile(be, 240, y, t + 9);
     }
 
@@ -393,28 +401,25 @@ static void decorate(Backend* be) {
     be_blit_tile(be, 197 + 16, 170, 84);
     be_blit_tile(be, 197 + 32, 170, 85);
     be_blit_tile(be, 197 + 48, 170, 86);
+
+    be_blit_text(be, 196, 36, "LEVEL");
+    be_blit_text(be, 196, 62, "HIGH");
+    be_blit_text(be, 196, 88, "SCORE"); 
+    be_blit_text(be, 196, 114, "ENERGY"); 
+    be_blit_text(be, 196, 140, "LIVES"); 
 }
 
 static void render_stats(GameState* gs, Backend* be) {
     static char level[8], high[8], score[8], energy[8], lives[8];
-
-//    be_fill_rect(be, 184, 0, 80, 192, 1); 
-
     snprintf(level, 8, "%7d", gs->level);
     snprintf(high, 8, "%7d", gs->high);
     snprintf(score, 8, "%7d", gs->score);
     snprintf(energy, 8, "%7d", gs->energy);
     snprintf(lives, 8, "%7d", gs->lives);
-
-    be_blit_text(be, 196, 36, "LEVEL");
     be_blit_text(be, 196, 45, level); 
-    be_blit_text(be, 196, 62, "HIGH");
     be_blit_text(be, 196, 71, high); 
-    be_blit_text(be, 196, 88, "SCORE"); 
     be_blit_text(be, 196, 97, score); 
-    be_blit_text(be, 196, 114, "ENERGY"); 
     be_blit_text(be, 196, 123, energy); 
-    be_blit_text(be, 196, 140, "LIVES"); 
     be_blit_text(be, 196, 149, lives); 
 }
 

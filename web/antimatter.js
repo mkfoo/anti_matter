@@ -1,9 +1,10 @@
 class WasmGame {
-    constructor(name, width, height) {
+    constructor(name, width, height, webgl) {
         this.name = name;
         this.width = width;
         this.height = height;
         this.events = [];
+        this.webgl = webgl;
     }
 
     eventVariants = {
@@ -58,12 +59,15 @@ class WasmGame {
             wbe_clear: () => {
                 this.renderer.clear();
             },
-            wbe_texture_copy: (ptr, len) => {
-                const buf = new Float32Array(this.memory, ptr, len);
-                this.renderer.textureCopy(buf);
+            wbe_update_buf: (ptr, offset, len) => {
+                const buf = new Float32Array(this.exports.memory.buffer, ptr, len);
+                this.renderer.updateBuf(buf, offset);
+            },
+            wbe_draw_buf: (offset, len) => {
+                this.renderer.drawBuf(offset, len);
             },
             wbe_draw_lines: (ptr, len) => {
-                const buf = new Float32Array(this.memory, ptr, len);
+                const buf = new Float32Array(this.exports.memory.buffer, ptr, len);
                 this.renderer.drawLines(buf);
             },
             wbe_toggle_scale_factor: () => {
@@ -80,22 +84,28 @@ class WasmGame {
         const inst = await WebAssembly.instantiate(mod, this.imports);
         this.exports = inst.exports;
         this.update = inst.exports.am_update;
-        this.memory = inst.exports.memory.buffer;
+        const scale = this.getScaleFactor(this.width, this.height);
 
-        try {
-            this.renderer = new WebGLRenderer(this.palette, this.width, this.height);
-        } catch (err) {
-            console.log(err.message + "Falling back on canvas rendering.");
-            this.renderer = new CanvasRenderer(this.palette, this.width, this.height);
+        if (this.webgl) {
+            try {
+                this.renderer = new WebGLRenderer(this.width, this.height, scale);
+            } catch (err) {
+                console.log(err.message + "Falling back on canvas rendering.");
+                this.webgl = 0;
+            }
+        }
+
+        if (!this.webgl) {
+            this.renderer = new CanvasRenderer(this.width, this.height, scale);
         }
 
         const pixelData = this.loadPixelData();
-        await this.renderer.loadTexture(pixelData);
+        await this.renderer.loadTexture(this.palette, pixelData);
 
         this.audio = new AudioSubsystem(this.name);
         await this.audio.init();
 
-        if (this.exports.am_init()) throw new Error("init failed");
+        if (this.exports.am_init(this.webgl)) throw new Error("init failed");
 
         document.addEventListener("keydown", (e) => {
             const ev = this.eventVariants[e.key];
@@ -124,27 +134,40 @@ class WasmGame {
     loadPixelData() {
         const structPtr = this.exports.wbe_load_pixel_data();
         if (!structPtr) throw new Error("null pixel data");
-        const struct = new Int32Array(this.memory, structPtr, 3);
+        const struct = new Int32Array(this.exports.memory.buffer, structPtr, 3);
         const dataPtr = struct[0];
         const width = struct[1];
         const height = struct[2];
-        const buf = new Uint8Array(this.memory, dataPtr, width * height);
+        const buf = new Uint8Array(this.exports.memory.buffer, dataPtr, width * height);
         return { buf, width, height };
+    }
+
+    getScaleFactor(origW, origH) {
+        const w = window.visualViewport.width;
+        const h = window.visualViewport.height;
+
+        for (let n of [8, 4, 2]) {
+            if (w >= origW * n && h >= origH * n) {
+                return n;
+            }
+        }
+
+        return 1;
     }
 }
 
 class WebGLRenderer {
-    constructor(palette, width, height) {
+    constructor(width, height, scale) {
         const vsSource = `
-            attribute vec4 aDstQuad;
+            attribute vec4 aInput;
             varying highp vec2 vSrcXY;
 
             uniform mat4 uSrcMatrix;
             uniform mat4 uDstMatrix; 
 
             void main(void) {
-                vSrcXY = (uSrcMatrix * vec4(aDstQuad.z, aDstQuad.w, 0.0, 1.0)).xy;
-                gl_Position = uDstMatrix * vec4(aDstQuad.x, aDstQuad.y, 0.0, 1.0);
+                vSrcXY = (uSrcMatrix * vec4(aInput.z, aInput.w, 0.0, 1.0)).xy;
+                gl_Position = uDstMatrix * vec4(aInput.x, aInput.y, 0.0, 1.0);
             }
         `;
 
@@ -159,22 +182,29 @@ class WebGLRenderer {
        
         const canvas = document.createElement("canvas");
         document.body.appendChild(canvas);
-        const gl = canvas.getContext("webgl");
+        const attrs = {
+            alpha: false,
+            antialias: false,
+            depth: false,
+            stencil: false,
+        };
+        const gl = canvas.getContext("webgl", attrs);
 
         if (!gl) {
             throw new Error("Could not create WebGL context.");
         }
 
         this.gl = gl;
-        this.palette = palette;
         this.color = 1;
         this.origWidth = width;
         this.origHeight = height;
-        this.setScaleFactor(2);
+        this.setScaleFactor(scale);
         this.program = this.initProgram(vsSource, fsSource);
+        this.bufSize = 2 ** 16;
+        this.elemSize = 4;
 
         this.attributes = {
-            aDstQuad: gl.getAttribLocation(this.program, "aDstQuad"),
+            aInput: gl.getAttribLocation(this.program, "aInput"),
         };
 
         this.uniforms = {
@@ -217,15 +247,15 @@ class WebGLRenderer {
 
     initBuffers() {
         const gl = this.gl;
-        const dstQuad = gl.createBuffer();
-        gl.bindBuffer(gl.ARRAY_BUFFER, dstQuad);
-        gl.bufferData(gl.ARRAY_BUFFER, 16384, gl.DYNAMIC_DRAW);
-        gl.vertexAttribPointer(this.attributes.aDstQuad, 4, gl.FLOAT, false, 0, 0);
-        gl.enableVertexAttribArray(this.attributes.aDstQuad);
-        return { dstQuad };
+        const inputBuf = gl.createBuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER, inputBuf);
+        gl.bufferData(gl.ARRAY_BUFFER, this.bufSize, gl.DYNAMIC_DRAW);
+        gl.vertexAttribPointer(this.attributes.aInput, this.elemSize, gl.FLOAT, false, 0, 0);
+        gl.enableVertexAttribArray(this.attributes.aInput);
+        return { inputBuf };
     }
 
-    async loadTexture(pixelData) {
+    async loadTexture(palette, pixelData) {
         const gl = this.gl;
         const len = pixelData.buf.length;
         const tw = pixelData.width;
@@ -235,10 +265,10 @@ class WebGLRenderer {
         for (let i = 0; i < len; i++) {
             const j = i * 4;
             const c = pixelData.buf[i];
-            rgba[j + 0] = this.palette[c][0];
-            rgba[j + 1] = this.palette[c][1];
-            rgba[j + 2] = this.palette[c][2];
-            rgba[j + 3] = this.palette[c][3];
+            rgba[j + 0] = palette[c][0];
+            rgba[j + 1] = palette[c][1];
+            rgba[j + 2] = palette[c][2];
+            rgba[j + 3] = palette[c][3];
         }
 
         const texture = gl.createTexture();
@@ -253,6 +283,7 @@ class WebGLRenderer {
         gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
         gl.clearDepth(1.0); 
         this.initMatrices(tw, th);
+        this.palette = palette;
         return texture;
     }
 
@@ -278,12 +309,18 @@ class WebGLRenderer {
         gl.uniformMatrix4fv(this.uniforms.uDstMatrix, false, dstMatrix);
     }
 
-    textureCopy(buf) {
+    updateBuf(buf, offset) {
         const gl = this.gl;
         gl.useProgram(this.program);
-        gl.bindBuffer(gl.ARRAY_BUFFER, this.buffers.dstQuad);
-        gl.bufferSubData(gl.ARRAY_BUFFER, 0, buf);
-        gl.drawArrays(gl.TRIANGLE_STRIP, 0, buf.length / 4);
+//        gl.bindBuffer(gl.ARRAY_BUFFER, this.buffers.inputBuf);
+        gl.bufferSubData(gl.ARRAY_BUFFER, offset * this.elemSize, buf);
+    }
+
+    drawBuf(offset, len) {
+        const gl = this.gl;
+        gl.useProgram(this.program);
+//        gl.bindBuffer(gl.ARRAY_BUFFER, this.buffers.inputBuf);
+        gl.drawArrays(gl.TRIANGLE_STRIP, offset / this.elemSize, len / this.elemSize);
     }
 
     drawLines(buf) {
@@ -296,6 +333,9 @@ class WebGLRenderer {
                 break;
             case 2:
                 this.setScaleFactor(4);
+                break;
+            case 4:
+                this.setScaleFactor(8);
                 break;
             default:
                 this.setScaleFactor(1);
@@ -321,12 +361,12 @@ class WebGLRenderer {
 
     clear() {
         const gl = this.gl;
-        gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+        gl.clear(gl.COLOR_BUFFER_BIT);
     }
 }
 
 class CanvasRenderer {
-    constructor(palette, width, height) {
+    constructor(width, height, scale) {
         const oldCanvas = document.querySelector("canvas");
 
         if (oldCanvas) {
@@ -335,7 +375,7 @@ class CanvasRenderer {
 
         const canvas = document.createElement("canvas");
         document.body.appendChild(canvas);
-        this.ctx = canvas.getContext("2d");
+        this.ctx = canvas.getContext("2d", { alpha: false });
 
         if (!this.ctx) {
             document.body.removeChild(canvas);
@@ -345,26 +385,26 @@ class CanvasRenderer {
             throw new Error("Could not create 2D context.");
         }
 
+        this.offscreen = document.createElement("canvas");
         this.origWidth = width;
         this.origHeight = height;
-        this.setScaleFactor(2);
-        this.cssPalette = palette.map(c => { return `rgb(${c[0]}, ${c[1]}, ${c[2]}, ${c[3]})` });
-        this.palette = palette;
+        this.setScaleFactor(scale);
     }
 
-    async loadTexture(pixelData) {
+    async loadTexture(palette, pixelData) {
         const img = this.ctx.createImageData(pixelData.width, pixelData.height);
 
         for (let i = 0; i < pixelData.buf.length; i++) {
             const j = i * 4;
             const c = pixelData.buf[i];
-            img.data[j + 0] = this.palette[c][0];
-            img.data[j + 1] = this.palette[c][1];
-            img.data[j + 2] = this.palette[c][2];
-            img.data[j + 3] = this.palette[c][3];
+            img.data[j + 0] = palette[c][0];
+            img.data[j + 1] = palette[c][1];
+            img.data[j + 2] = palette[c][2];
+            img.data[j + 3] = palette[c][3];
         }
 
         this.texture = await createImageBitmap(img);
+        this.cssPalette = palette.map(c => { return `rgb(${c[0]}, ${c[1]}, ${c[2]}, ${c[3]})` });
     }
 
     setColor(c) {
@@ -372,22 +412,37 @@ class CanvasRenderer {
         this.ctx.strokeStyle = this.cssPalette[c];
     }
 
-    textureCopy(buf) {
-        console.log("sprites " + buf.length);
+    updateBuf(buf, offset) {
+        let ctx;
+
+        if (offset === 0) {
+            ctx = this.offscreen.getContext("2d");
+            ctx.canvas.width = this.origWidth;
+            ctx.canvas.height = this.origHeight;
+        } else {
+            ctx = this.ctx;
+        }
 
         for (let i = 0; i < buf.length; i += 16) {
             const dx = buf[i + 0];
             const sx = buf[i + 2];
             const dy = buf[i + 5];
             const sy = buf[i + 7];
-            const w = buf[i + 8] - dx;
-            const h = buf[i + 9] - dy;
-            this.ctx.drawImage(this.texture, sx, sy, w, h, dx, dy, w, h);
+            const dw = buf[i + 8] - dx;
+            const dh = buf[i + 9] - dy;
+            const sw = buf[i + 10] - sx;
+            const sh = buf[i + 11] - sy;
+            ctx.drawImage(this.texture, sx, sy, sw, sh, dx, dy, dw, dh);
         }
     }   
 
+    drawBuf(offset, len) {
+        if (offset === 0) {
+            this.ctx.drawImage(this.offscreen, 0, 0);
+        }
+    }
+
     drawLines(buf) {
-        console.log("lines " + buf.length);
         this.ctx.beginPath();
 
         for (let i = 0; i < buf.length; i += 4) {
@@ -409,6 +464,9 @@ class CanvasRenderer {
                 break;
             case 2:
                 this.setScaleFactor(4);
+                break;
+            case 4:
+                this.setScaleFactor(8);
                 break;
             default:
                 this.setScaleFactor(1);
@@ -458,4 +516,4 @@ class AudioSubsystem {
     }
 }
 
-new WasmGame("antimatter", 256, 192).main();
+new WasmGame("antimatter", 256, 192, 0).main();

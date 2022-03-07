@@ -6,7 +6,7 @@ static GameState* gs = NULL;
 #ifdef WASM_BACKEND
 __attribute__((export_name("am_init")))
 #endif
-int am_init(void);
+int am_init(int gl);
 
 #ifdef WASM_BACKEND
 __attribute__((export_name("am_update")))
@@ -15,17 +15,20 @@ int am_update(double timestamp);
 
 void am_quit(void);
 
-int am_init(void) {
+int am_init(int gl) {
     if (be == NULL && gs == NULL) {
-        be = be_init();
+        be = be_init(gl);
         gs = gs_init();
 
         if (be == NULL || gs == NULL) { 
             return -1; 
         }
 
-        be_set_color(be, 4);
         be_send_audiomsg(be, MSG_PLAY);
+        be_set_render_target(be, 1);
+        gs_decorate(be);
+        be_set_render_target(be, 0);
+        be_set_color(be, 4);
 
         return 0;
     }
@@ -54,9 +57,7 @@ void am_quit(void) {
 }
 
 int main(void) {
-    int err = am_init();
-
-    if (err) {
+    if (am_init(1)) {
         return EXIT_FAILURE;
     }
 

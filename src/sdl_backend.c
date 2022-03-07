@@ -7,7 +7,7 @@ static void be_toggle_fullscreen(Backend* be);
 static void be_toggle_scale(Backend* be);
 
 const SDL_Color COLORS[16] = {
-    {0xff, 0x00, 0xff, 0xff}, // TRANSPARENT
+    {0x00, 0x00, 0x00, 0x00}, // TRANSPARENT
     {0x00, 0x00, 0x00, 0xff}, // BLACK
     {0x3e, 0xb8, 0x49, 0xff}, // MEDIUM_GREEN
     {0x74, 0xd0, 0x7d, 0xff}, // LIGHT_GREEN
@@ -25,13 +25,15 @@ const SDL_Color COLORS[16] = {
     {0xff, 0xff, 0xff, 0xff}, // WHITE
 };
 
-Backend* be_init(void) {
+Backend* be_init(int gl) {
     SDL_AudioSpec spec_wanted;
     SDL_AudioSpec spec_received = { 0 };
     int err = 0;
 
     Backend* be = calloc(1, sizeof(Backend));
     LOG_ERR(be == NULL, "alloc failure");
+
+    be->gl = gl;
 
     err = SDL_Init(SDL_INIT_VIDEO | 
                    SDL_INIT_AUDIO | 
@@ -58,12 +60,22 @@ Backend* be_init(void) {
     err = SDL_SetPaletteColors(surf->format->palette, COLORS, 0, 16);
     LOG_ERR(err, SDL_GetError());
 
-    err = SDL_SetColorKey(surf, SDL_TRUE, 0);
-    LOG_ERR(err, SDL_GetError());
-
     be->tex = SDL_CreateTextureFromSurface(be->ren, surf);
     LOG_ERR(be->tex == NULL, SDL_GetError());
     SDL_FreeSurface(surf);
+    
+    err = SDL_SetTextureBlendMode(be->tex, SDL_BLENDMODE_BLEND);
+    LOG_ERR(err, SDL_GetError());
+
+    SDL_PixelFormatEnum actual_fmt;
+    err = SDL_QueryTexture(be->tex, &actual_fmt, NULL, NULL, NULL);
+    LOG_ERR(err, SDL_GetError());
+
+    be->stx = SDL_CreateTexture(be->ren, actual_fmt, SDL_TEXTUREACCESS_TARGET, WINDOW_W, WINDOW_H);
+    LOG_ERR(be->stx == NULL, SDL_GetError());
+
+    err = SDL_SetTextureBlendMode(be->stx, SDL_BLENDMODE_BLEND);
+    LOG_ERR(err, SDL_GetError());
 
     be->snd = sg_init();
     LOG_ERR(be->snd == NULL, "sg_init failed");
@@ -157,6 +169,14 @@ void be_set_color(Backend* be, int color) {
     SDL_SetRenderDrawColor(be->ren, c.r, c.g, c.b, c.a);
 }
 
+void be_set_render_target(Backend* be, int tgt) {
+    if (tgt) {
+        SDL_SetRenderTarget(be->ren, be->stx); 
+    } else {
+        SDL_SetRenderTarget(be->ren, NULL); 
+    }
+}
+
 void be_clear(Backend* be) {
     SDL_RenderClear(be->ren);
 }
@@ -186,6 +206,11 @@ void be_blit_text(Backend* be, int x, int y, char* str) {
     }
 }
 
+void be_blit_static(Backend* be) {
+    SDL_Rect dstsrc = { 0, 0, WINDOW_W, WINDOW_H };
+    SDL_RenderCopy(be->ren, be->stx, &dstsrc, &dstsrc);
+}
+
 void be_send_audiomsg(Backend* be, int msg) {
     SDL_LockAudioDevice(be->dev);
     sg_handle_message(be->snd, msg);
@@ -194,6 +219,11 @@ void be_send_audiomsg(Backend* be, int msg) {
 
 void be_draw_line(Backend* be, int x1, int y1, int x2, int y2) {
     SDL_RenderDrawLine(be->ren, x1, y1, x2, y2);
+}
+
+void be_fill_rect(Backend* be, int x, int y, int w, int h) {
+    SDL_Rect rect = { x, y, w, h };
+    SDL_RenderFillRect(be->ren, &rect);
 }
 
 static void be_toggle_fullscreen(Backend* be) {
