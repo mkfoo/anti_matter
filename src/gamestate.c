@@ -17,6 +17,7 @@ static Adjacent find_adjacent(GameState* gs, Sprite* s, Delta d);
 GameState* gs_init(void) {
     GameState* gs = calloc(1, sizeof(GameState));
     LOG_ERR(gs == NULL, "alloc failure");
+    gs->spd_mod = -8.0f;
     gs->high = 1000;
     add_sprite(gs, 0, 0, ID_NIL);
     gs_set_scene(gs, sc_splash, 5); 
@@ -182,6 +183,7 @@ void gs_move_pcs(GameState* gs, Backend* be, int8_t dx, int8_t dy) {
 }
 
 void gs_render_default(GameState* gs, Backend* be) {
+    be_fill_rect(be, 184, 0, 72, 192); 
     be_blit_static(be);
     render_stats(gs, be);
 }
@@ -216,11 +218,11 @@ void gs_render_sprites(GameState* gs, Backend* be) {
         if (!has_flag(s, F_NIL)) {
             int16_t x = s->p.x;
             int16_t y = s->p.y;
-            uint8_t tile = s->tile;
-            float offset = gs->phase * 8.0f;
+            int tile = s->tile;
+            float offset = gs->phase * gs->spd_mod;
 
             if (has_flag(s, F_ANIMATED)) {
-                tile += (uint8_t) offset % 4;
+                tile += (4 - (int) offset % 4) % 4;
             } 
 
             if (x > bound_x) {
@@ -254,7 +256,8 @@ static bool advance_clock(GameState* self, double timestamp) {
     self->prev = now;
 
     if (lag > 0 && lag < MAX_LAG) {
-        self->phase = fmodf(self->phase + ANIM_SPEED * (float) lag, 1.0f);
+        float incr = ANIM_SPEED * (float) lag;
+        self->phase = fmodf(self->phase + incr, 1.0f);
         self->lag = lag; 
         return true;
     }
@@ -361,7 +364,6 @@ static Adjacent find_adjacent(GameState* gs, Sprite* s1, Delta d) {
 
 void gs_decorate(Backend* be) {
     uint8_t t = DECOR_TILE_BASE;
-    be_set_color(be, 1);
 
     be_blit_tile(be, 0, 0, t);
     for (int n = 16; n < 176; n += 16) {
@@ -415,7 +417,6 @@ static void render_stats(GameState* gs, Backend* be) {
     snprintf(score, 8, "%7d", gs->score);
     snprintf(energy, 8, "%7d", gs->energy);
     snprintf(lives, 8, "%7d", gs->lives);
-    be_fill_rect(be, 184, 0, 72, 192); 
     be_blit_text(be, 196, 45, level); 
     be_blit_text(be, 196, 71, high); 
     be_blit_text(be, 196, 97, score); 

@@ -11,6 +11,7 @@ typedef bool SceneFn(GameState* gs, Backend* be);
 struct GameState {
     SceneFn* scene;
     float phase;
+    float spd_mod;
     int64_t start;
     int64_t delay;
     int64_t prev;

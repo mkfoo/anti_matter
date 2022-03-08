@@ -220,8 +220,9 @@ void be_draw_line(Backend* be, int x1, int y1, int x2, int y2) {
 }
 
 void be_fill_rect(Backend* be, int x, int y, int w, int h) {
-    SDL_Rect rect = { x, y, w, h };
-    SDL_RenderFillRect(be->ren, &rect);
+    SDL_Rect src = { 0, 0, 1, 1 };
+    SDL_Rect dst = { x, y, w, h };
+    SDL_RenderCopy(be->ren, be->tex, &src, &dst);
 }
 
 static void be_toggle_fullscreen(Backend* be) {

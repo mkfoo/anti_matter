@@ -133,9 +133,13 @@ bool sc_title(GameState* gs, Backend* be) {
 }
 
 bool sc_fade_out(GameState* gs, Backend* be) {
-    float phase = gs_phase(gs);
     be_get_event(be);
-    render_title(be, 64, 56);
+    float phase = gs_phase(gs);
+    int x0 = 64;
+    int y0 = 56;
+    int y = y0 + phase * 64.0f;
+    if (y > 88) y = 88;
+    render_title(be, x0, y);
 
     if (((int) (phase * 100.0f)) % 5 == 0) {
         be_send_audiomsg(be, MSG_VOL_DOWN);
@@ -267,13 +271,13 @@ bool sc_swap(GameState* gs, Backend* be) {
     if (gs_phase(gs) >= 0.5f && !swapped) {
         gs_swap_sprites(gs);
         gs->energy -= SWAP_COST;
-        gs->sprites[ID_ANTI].tile = 45;
-        gs->sprites[ID_MATTER].tile = 45;
+        gs->spd_mod = 8.0f;
         swapped = true;
     } else if (gs_phase(gs) == 1.0f) {
         gs->sprites[ID_ANTI].tile = 1;
         gs->sprites[ID_MATTER].tile = 9;
         gs_set_scene(gs, sc_playing, 0);
+        gs->spd_mod = -8.0f;
         swapped = false;
     } 
 
@@ -282,6 +286,7 @@ bool sc_swap(GameState* gs, Backend* be) {
 
 bool sc_level_clear(GameState* gs, Backend* be) {
     static int32_t gain = 0;
+    gs->spd_mod = -12.0f;
     be_get_event(be);
     gs_render_sprites(gs, be);
     gs_render_default(gs, be);
@@ -316,6 +321,7 @@ bool sc_clear_wait(GameState* gs, Backend* be) {
         gs->level = (int16_t) (gs->level + 1) % MAX_LEVEL;
         gs_load_level(gs);
         gs_set_scene(gs, sc_start_level, 2);
+        gs->spd_mod = -8.0f;
     }
 
     return true;
