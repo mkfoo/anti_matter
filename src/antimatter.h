@@ -11,7 +11,7 @@
 #define FRAME_W 8
 #define MAP_H 11
 #define MAP_W 11
-#define MAX_LEVEL 5
+#define MAX_LEVEL 6
 #define MAX_SPRITES 122
 #define MAX_LAG 800
 #define MAX_X 176
