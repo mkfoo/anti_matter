@@ -1,6 +1,8 @@
 class WasmGame {
-    constructor(name) {
+    constructor(name, width, height) {
         this.name = name;
+        this.width = width;
+        this.height = height;
         this.events = [];
     }
 
@@ -41,20 +43,31 @@ class WasmGame {
 
     imports = { 
         wasi_snapshot_preview1: {
+            fd_seek: (a) => {},
+            fd_write: (a) => {},
+            fd_close: (a) => {},
             proc_exit: (a) => {},
         },
         env: { 
             wbe_get_keydown: () => { 
                 return this.events.shift() || 0; 
             },
-            wbe_texture_copy: (sx, sy, sw, sh, dx, dy) => {
-                this.renderer.textureCopy(sx, sy, sw, sh, dx, dy);
+            wbe_set_color: (c) => {
+                this.renderer.setColor(c);
             },
-            wbe_fill_rect: (x, y, w, h, c) => {
-                this.renderer.fillRect(x, y, w, h, c);
+            wbe_clear: () => {
+                this.renderer.clear();
             },
-            wbe_draw_line: (x1, y1, x2, y2, c) => {
-                this.renderer.drawLine(x1, y1, x2, y2, c);
+            wbe_update_buf: (ptr, offset, len) => {
+                const buf = new Float32Array(this.exports.memory.buffer, ptr, len);
+                this.renderer.updateBuf(buf, offset);
+            },
+            wbe_draw_buf: (offset, len) => {
+                this.renderer.drawBuf(offset, len);
+            },
+            wbe_draw_lines: (ptr, len) => {
+                const buf = new Float32Array(this.exports.memory.buffer, ptr, len);
+                this.renderer.drawLines(buf);
             },
             wbe_toggle_scale_factor: () => {
                 this.renderer.toggleScaleFactor();
@@ -70,16 +83,13 @@ class WasmGame {
         const inst = await WebAssembly.instantiate(mod, this.imports);
         this.exports = inst.exports;
         this.update = inst.exports.am_update;
-        this.memory = inst.exports.memory.buffer;
-        this.renderer = new CanvasRenderer(this.palette);
-
+        const scale = this.getScaleFactor(this.width, this.height);
+        this.renderer = new CanvasRenderer(this.width, this.height, scale);
         const pixelData = this.loadPixelData();
-        await this.renderer.loadTexture(pixelData);
-
+        await this.renderer.loadTexture(this.palette, pixelData);
         this.audio = new AudioSubsystem(this.name);
         await this.audio.init();
-
-        if (this.exports.am_init()) throw new Error("init failed");
+        if (this.exports.am_init(this.webgl)) throw new Error("init failed");
 
         document.addEventListener("keydown", (e) => {
             const ev = this.eventVariants[e.key];
@@ -97,7 +107,7 @@ class WasmGame {
             if (this.update(timestamp)) {
                 window.requestAnimationFrame(nextFrame);
             } else {
-                this.renderer.quit();
+                this.renderer.clear();
                 this.audio.quit();
             }
         };
@@ -108,57 +118,117 @@ class WasmGame {
     loadPixelData() {
         const structPtr = this.exports.wbe_load_pixel_data();
         if (!structPtr) throw new Error("null pixel data");
-        const struct = new Int32Array(this.memory, structPtr, 3);
+        const struct = new Int32Array(this.exports.memory.buffer, structPtr, 3);
         const dataPtr = struct[0];
         const width = struct[1];
         const height = struct[2];
-        const input = new Uint8Array(this.memory, dataPtr, width * height);
-        const buf = new Uint8Array(input.length * 4);
-
-        for (let i = 0; i < input.length; i++) {
-            const j = i * 4;
-            const c = input[i];
-            buf[j + 0] = this.palette[c][0];
-            buf[j + 1] = this.palette[c][1];
-            buf[j + 2] = this.palette[c][2];
-            buf[j + 3] = this.palette[c][3];
-        }
-        
+        const buf = new Uint8Array(this.exports.memory.buffer, dataPtr, width * height);
         return { buf, width, height };
+    }
+
+    getScaleFactor(origW, origH) {
+        const w = window.visualViewport.width;
+        const h = window.visualViewport.height;
+
+        for (let n of [8, 4, 2]) {
+            if (w >= origW * n && h >= origH * n) {
+                return n;
+            }
+        }
+
+        return 1;
     }
 }
 
 class CanvasRenderer {
-    constructor(palette) {
-        const canvas = document.getElementById("canvas"); 
-        this.origWidth = canvas.width;
-        this.origHeight = canvas.height;
-        this.ctx = canvas.getContext("2d");
-        this.ctx.imageSmoothingEnabled = false;
-        this.cssPalette = palette.map(c => { return `rgb(${c[0]}, ${c[1]}, ${c[2]}, ${c[3]})` });
-        this.setScaleFactor(2);
+    constructor(width, height, scale) {
+        const oldCanvas = document.querySelector("canvas");
+
+        if (oldCanvas) {
+            document.body.removeChild(oldCanvas);
+        }
+
+        const canvas = document.createElement("canvas");
+        document.body.appendChild(canvas);
+        this.ctx = canvas.getContext("2d", { alpha: false });
+
+        if (!this.ctx) {
+            document.body.removeChild(canvas);
+            const p = document.createElement("p");
+            p.textContent = "Sorry, your browser does not support canvas rendering.";
+            document.body.appendChild(p);
+            throw new Error("Could not create 2D context.");
+        }
+
+        this.offscreen = document.createElement("canvas");
+        this.origWidth = width;
+        this.origHeight = height;
+        this.setScaleFactor(scale);
     }
 
-    async loadTexture(pixelData) {
+    async loadTexture(palette, pixelData) {
         const img = this.ctx.createImageData(pixelData.width, pixelData.height);
-        img.data.set(pixelData.buf);
+
+        for (let i = 0; i < pixelData.buf.length; i++) {
+            const j = i * 4;
+            const c = pixelData.buf[i];
+            img.data[j + 0] = palette[c][0];
+            img.data[j + 1] = palette[c][1];
+            img.data[j + 2] = palette[c][2];
+            img.data[j + 3] = palette[c][3];
+        }
+
         this.texture = await createImageBitmap(img);
+        this.cssPalette = palette.map(c => { return `rgb(${c[0]}, ${c[1]}, ${c[2]}, ${c[3]})` });
     }
 
-    textureCopy(sx, sy, sw, sh, dx, dy) {
-        this.ctx.drawImage(this.texture, sx, sy, sw, sh, dx, dy, sw, sh);
+    setColor(c) {
+        this.ctx.fillStyle = this.cssPalette[c];
+        this.ctx.strokeStyle = this.cssPalette[c];
+    }
+
+    updateBuf(buf, offset) {
+        let ctx;
+
+        if (offset === 0) {
+            ctx = this.offscreen.getContext("2d");
+            ctx.canvas.width = this.origWidth;
+            ctx.canvas.height = this.origHeight;
+        } else {
+            ctx = this.ctx;
+        }
+
+        for (let i = 0; i < buf.length; i += 16) {
+            const dx = buf[i + 0];
+            const sx = buf[i + 2];
+            const dy = buf[i + 5];
+            const sy = buf[i + 7];
+            const dw = buf[i + 8] - dx;
+            const dh = buf[i + 9] - dy;
+            const sw = buf[i + 10] - sx;
+            const sh = buf[i + 11] - sy;
+            ctx.drawImage(this.texture, sx, sy, sw, sh, dx, dy, dw, dh);
+        }
     }   
 
-    fillRect(x, y, w, h, c) {
-        this.ctx.fillStyle = this.cssPalette[c];
-        this.ctx.fillRect(x, y, w, h);
+    drawBuf(offset, len) {
+        if (offset === 0) {
+            this.ctx.drawImage(this.offscreen, 0, 0);
+        }
     }
 
-    drawLine(x1, y1, x2, y2, c) {
+    drawLines(buf) {
         this.ctx.beginPath();
-        this.ctx.strokeStyle = this.cssPalette[c];
-        this.ctx.moveTo(x1 + .5, y1 + .5);
-        this.ctx.lineTo(x2 + .5, y2 + .5);
+
+        for (let i = 0; i < buf.length; i += 4) {
+            const x1 = buf[i + 0];
+            const y1 = buf[i + 1];
+            const x2 = buf[i + 2];
+            const y2 = buf[i + 3];
+            this.ctx.moveTo(x1 + .5, y1 + .5);
+            this.ctx.lineTo(x2 + .5, y2 + .5);
+        }
+
         this.ctx.stroke();
     }
 
@@ -169,6 +239,9 @@ class CanvasRenderer {
                 break;
             case 2:
                 this.setScaleFactor(4);
+                break;
+            case 4:
+                this.setScaleFactor(8);
                 break;
             default:
                 this.setScaleFactor(1);
@@ -184,8 +257,8 @@ class CanvasRenderer {
         this.scaleFactor = sf;
     }
 
-    quit() {
-        this.ctx.clearRect(0, 0, 256, 192);
+    clear() {
+        this.ctx.fillRect(0, 0, this.origWidth, this.origHeight);
     }
 }
 
@@ -218,4 +291,4 @@ class AudioSubsystem {
     }
 }
 
-new WasmGame("antimatter").main();
+new WasmGame("antimatter", 256, 192).main();

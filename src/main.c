@@ -25,6 +25,10 @@ int am_init(void) {
         }
 
         be_send_audiomsg(be, MSG_PLAY);
+        be_set_render_target(be, 1);
+        gs_decorate(be);
+        be_set_render_target(be, 0);
+        be_set_color(be, 4);
 
         return 0;
     }
@@ -53,9 +57,7 @@ void am_quit(void) {
 }
 
 int main(void) {
-    int err = am_init();
-
-    if (err) {
+    if (am_init()) {
         return EXIT_FAILURE;
     }
 

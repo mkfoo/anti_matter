@@ -1,5 +1,8 @@
 const importObj = { 
     wasi_snapshot_preview1: {
+        fd_seek: (a) => {},
+        fd_write: (a) => {},
+        fd_close: (a) => {},
         proc_exit: (a) => {},
     },
 };

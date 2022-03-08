@@ -2,7 +2,7 @@
 #include "sprite.h"
 
 static void render_title(Backend* be, int x0, int y);
-static void fade_effect(Backend* be, float phase, int color);
+static void fade_effect(Backend* be, float phase);
 static void lose_life(GameState* gs, Backend* be);
 
 static void render_title(Backend* be, int x0, int y) {
@@ -12,13 +12,13 @@ static void render_title(Backend* be, int x0, int y) {
     }
 }
 
-static void fade_effect(Backend* be, float phase, int color) {
+static void fade_effect(Backend* be, float phase) {
     int m = (int) (192.0f / powf(2, phase * 7.0f));
 
     for (int i = 8; i < 184; i++) {
         if (i % m != 0) {
-            be_draw_line(be, 8, i, 184, i, color);
-            be_draw_line(be, i, 8, i, 184, color);
+            be_draw_line(be, 8, i, 184, i);
+            be_draw_line(be, i, 8, i, 184);
         }
     }
 }
@@ -41,8 +41,6 @@ bool sc_splash(GameState* gs, Backend* be) {
     int y0 = 80;
 
     if (phase < 0.8f) {
-        be_fill_rect(be, 0, 0, WINDOW_W, WINDOW_H, 4);
-
         if (phase > 0.4) {
             be_blit_text(be, x0 + 24, y0 - 8, "(Not)");
         }
@@ -50,6 +48,8 @@ bool sc_splash(GameState* gs, Backend* be) {
         be_blit_text(be, x0, y0,  "MSX  system");
         be_blit_text(be, x0, y0 + 8, "version 1.0");
         be_blit_text(be, x0 - 48, y0 + 24, "Copyright 2020 by mkfoo");
+    } else {
+        be_set_color(be, 1);
     }
 
     if (phase == 1.0f) {
@@ -159,7 +159,7 @@ bool sc_start_level(GameState* gs, Backend* be) {
     be_send_audiomsg(be, MSG_PLAY | 2);
     gs_render_sprites(gs, be);
     float phase = gs_phase(gs);
-    fade_effect(be, phase, 1);
+    fade_effect(be, phase);
     gs_render_default(gs, be);
 
     if (phase == 1.0f) {
@@ -339,20 +339,21 @@ bool sc_death1(GameState* gs, Backend* be) {
 }
 
 bool sc_death2(GameState* gs, Backend* be) {
+    static int c = 0;
     be_get_event(be);
     float phase = gs_phase(gs);
-    int color = 15;
 
-    if (((int) (phase * 41.0f)) % 2 == 0) {
-        color = 14;
-    }
+    if (((int) (phase * 100.0f)) % 5 == 0) {
+        c ^= 1;
+        be_set_color(be, 14 + c);
+    } 
 
-    be_fill_rect(be, 0, 0, WINDOW_W, WINDOW_H, color); 
     gs_render_sprites(gs, be);
-    fade_effect(be, (1.0f - phase), color);
+    fade_effect(be, 1.0f - phase);
     gs_render_default(gs, be);
 
     if (phase == 1.0f) {
+        be_set_color(be, 1);
         lose_life(gs, be);
     }
 
