@@ -250,11 +250,12 @@ class CanvasRenderer {
 
     setScaleFactor(sf) {
         const ctx = this.contexts[0];
-        ctx.canvas.width = this.origWidth * sf;
-        ctx.canvas.height = this.origHeight * sf;
-        ctx.setTransform(1, 0, 0, 1, 0, 0);
-        ctx.scale(sf, sf);
-        ctx.imageSmoothingEnabled = false;
+        ctx.canvas.style = `
+            transform-origin: 0 0; 
+            transform: scale(${sf}); 
+            --sw: ${this.origWidth * sf / 2}px; 
+            --sh: ${this.origHeight * sf / 2}px; 
+        `;
         this.scaleFactor = sf;
     }
 

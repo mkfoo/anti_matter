@@ -7,10 +7,12 @@
             body {
                 height: 100vh;
                 background-color: grey;
-                display: flex;
-                flex-direction: column;
-                justify-content: center;
-                align-items: center;    
+                display: block;
+            }
+            canvas {
+                image-rendering: crisp-edges;
+                margin-left: calc(50vw - var(--sw, 256px)); 
+                margin-top: calc(50vh - var(--sh, 192px));
             }
         </style>
         <script src="antimatter.js" defer></script>
