@@ -362,7 +362,6 @@ static Adjacent find_adjacent(GameState* gs, Sprite* s1, Delta d) {
 void gs_decorate(Backend* be) {
     uint8_t t = DECOR_TILE_BASE;
     be_set_color(be, 1);
-    be_fill_rect(be, 184, 0, 72, 192); 
 
     be_blit_tile(be, 0, 0, t);
     for (int n = 16; n < 176; n += 16) {
@@ -416,6 +415,7 @@ static void render_stats(GameState* gs, Backend* be) {
     snprintf(score, 8, "%7d", gs->score);
     snprintf(energy, 8, "%7d", gs->energy);
     snprintf(lives, 8, "%7d", gs->lives);
+    be_fill_rect(be, 184, 0, 72, 192); 
     be_blit_text(be, 196, 45, level); 
     be_blit_text(be, 196, 71, high); 
     be_blit_text(be, 196, 97, score); 

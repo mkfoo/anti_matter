@@ -5,12 +5,9 @@
 #ifdef WASM_BACKEND
 
 typedef struct {
-    float* ptr;
-    size_t offset;
+    int* ptr;
     size_t len;
     size_t cap;
-    int prev_dr;
-    int prev_dt;
 } VertexBuf;
 
 typedef struct {

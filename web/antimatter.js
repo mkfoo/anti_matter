@@ -58,16 +58,19 @@ class WasmGame {
             wbe_clear: () => {
                 this.renderer.clear();
             },
-            wbe_update_buf: (ptr, offset, len) => {
-                const buf = new Float32Array(this.exports.memory.buffer, ptr, len);
-                this.renderer.updateBuf(buf, offset);
+            wbe_set_render_target: (tgt) => {
+                this.renderer.target = tgt;
             },
-            wbe_draw_buf: (offset, len) => {
-                this.renderer.drawBuf(offset, len);
+            wbe_render_quads: (ptr, len) => {
+                const buf = new Int32Array(this.exports.memory.buffer, ptr, len);
+                this.renderer.renderQuads(buf);
             },
-            wbe_draw_lines: (ptr, len) => {
-                const buf = new Float32Array(this.exports.memory.buffer, ptr, len);
-                this.renderer.drawLines(buf);
+            wbe_render_lines: (ptr, len) => {
+                const buf = new Int32Array(this.exports.memory.buffer, ptr, len);
+                this.renderer.renderLines(buf);
+            },
+            wbe_render_static: (idx) => {
+                this.renderer.renderStatic(idx);
             },
             wbe_toggle_scale_factor: () => {
                 this.renderer.toggleScaleFactor();
@@ -89,7 +92,7 @@ class WasmGame {
         await this.renderer.loadTexture(this.palette, pixelData);
         this.audio = new AudioSubsystem(this.name);
         await this.audio.init();
-        if (this.exports.am_init(this.webgl)) throw new Error("init failed");
+        if (this.exports.am_init()) throw new Error("init failed");
 
         document.addEventListener("keydown", (e) => {
             const ev = this.eventVariants[e.key];
@@ -142,32 +145,37 @@ class WasmGame {
 
 class CanvasRenderer {
     constructor(width, height, scale) {
-        const oldCanvas = document.querySelector("canvas");
+        this.target = 0;
+        this.contexts = [];
+        this.origWidth = width;
+        this.origHeight = height;
+        this.initCanvas(true, { alpha: false });
+        this.initCanvas(false, {});
+        this.setScaleFactor(scale);
+    }
 
-        if (oldCanvas) {
-            document.body.removeChild(oldCanvas);
-        }
-
+    initCanvas(onscreen, attrs) {
         const canvas = document.createElement("canvas");
-        document.body.appendChild(canvas);
-        this.ctx = canvas.getContext("2d", { alpha: false });
+        const ctx = canvas.getContext("2d", attrs);
 
-        if (!this.ctx) {
-            document.body.removeChild(canvas);
+        if (!ctx) {
             const p = document.createElement("p");
             p.textContent = "Sorry, your browser does not support canvas rendering.";
             document.body.appendChild(p);
             throw new Error("Could not create 2D context.");
         }
 
-        this.offscreen = document.createElement("canvas");
-        this.origWidth = width;
-        this.origHeight = height;
-        this.setScaleFactor(scale);
+        if (onscreen) {
+            document.body.appendChild(canvas);
+        }
+
+        ctx.canvas.width = this.origWidth;
+        ctx.canvas.height = this.origHeight;
+        this.contexts.push(ctx);
     }
 
     async loadTexture(palette, pixelData) {
-        const img = this.ctx.createImageData(pixelData.width, pixelData.height);
+        const img = this.contexts[0].createImageData(pixelData.width, pixelData.height);
 
         for (let i = 0; i < pixelData.buf.length; i++) {
             const j = i * 4;
@@ -178,58 +186,50 @@ class CanvasRenderer {
             img.data[j + 3] = palette[c][3];
         }
 
-        this.texture = await createImageBitmap(img);
         this.cssPalette = palette.map(c => { return `rgb(${c[0]}, ${c[1]}, ${c[2]}, ${c[3]})` });
+        this.texture = await createImageBitmap(img);
     }
 
     setColor(c) {
-        this.ctx.fillStyle = this.cssPalette[c];
-        this.ctx.strokeStyle = this.cssPalette[c];
+        const ctx = this.contexts[this.target];
+        ctx.fillStyle = this.cssPalette[c];
+        ctx.strokeStyle = this.cssPalette[c];
     }
 
-    updateBuf(buf, offset) {
-        let ctx;
+    renderQuads(buf) {
+        const ctx = this.contexts[this.target];
 
-        if (offset === 0) {
-            ctx = this.offscreen.getContext("2d");
-            ctx.canvas.width = this.origWidth;
-            ctx.canvas.height = this.origHeight;
-        } else {
-            ctx = this.ctx;
-        }
-
-        for (let i = 0; i < buf.length; i += 16) {
-            const dx = buf[i + 0];
-            const sx = buf[i + 2];
-            const dy = buf[i + 5];
-            const sy = buf[i + 7];
-            const dw = buf[i + 8] - dx;
-            const dh = buf[i + 9] - dy;
-            const sw = buf[i + 10] - sx;
-            const sh = buf[i + 11] - sy;
-            ctx.drawImage(this.texture, sx, sy, sw, sh, dx, dy, dw, dh);
+        for (let i = 0; i < buf.length; i += 8) {
+            ctx.drawImage(this.texture,
+                          buf[i + 0],
+                          buf[i + 1],
+                          buf[i + 2],
+                          buf[i + 3],
+                          buf[i + 4],
+                          buf[i + 5],
+                          buf[i + 6],
+                          buf[i + 7]);
         }
     }   
 
-    drawBuf(offset, len) {
-        if (offset === 0) {
-            this.ctx.drawImage(this.offscreen, 0, 0);
-        }
-    }
-
-    drawLines(buf) {
-        this.ctx.beginPath();
+    renderLines(buf) {
+        const ctx = this.contexts[this.target];
+        ctx.beginPath();
 
         for (let i = 0; i < buf.length; i += 4) {
-            const x1 = buf[i + 0];
-            const y1 = buf[i + 1];
-            const x2 = buf[i + 2];
-            const y2 = buf[i + 3];
-            this.ctx.moveTo(x1 + .5, y1 + .5);
-            this.ctx.lineTo(x2 + .5, y2 + .5);
+            ctx.moveTo(buf[i + 0] + .5, buf[i + 1] + .5);
+            ctx.lineTo(buf[i + 2] + .5, buf[i + 3] + .5);
         }
 
-        this.ctx.stroke();
+        ctx.stroke();
+    }
+
+    renderStatic(idx) {
+        if (idx) {
+            const ctx = this.contexts[0];
+            const canvas = this.contexts[idx].canvas;
+            ctx.drawImage(canvas, 0, 0);
+        }
     }
 
     toggleScaleFactor() {
@@ -249,16 +249,18 @@ class CanvasRenderer {
     }
 
     setScaleFactor(sf) {
-        this.ctx.canvas.width = this.origWidth * sf;
-        this.ctx.canvas.height = this.origHeight * sf;
-        this.ctx.setTransform(1, 0, 0, 1, 0, 0);
-        this.ctx.scale(sf, sf);
-        this.ctx.imageSmoothingEnabled = false;
+        const ctx = this.contexts[0];
+        ctx.canvas.width = this.origWidth * sf;
+        ctx.canvas.height = this.origHeight * sf;
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.scale(sf, sf);
+        ctx.imageSmoothingEnabled = false;
         this.scaleFactor = sf;
     }
 
     clear() {
-        this.ctx.fillRect(0, 0, this.origWidth, this.origHeight);
+        const ctx = this.contexts[this.target];
+        ctx.fillRect(0, 0, this.origWidth, this.origHeight);
     }
 }
 

@@ -6,7 +6,7 @@
 #include "backend.h"
 #include "texture_data.h"
 
-#define SPRITE_BUF_SIZE 8192
+#define SPRITE_BUF_SIZE 1600
 #define LINE_BUF_SIZE 1600
 
 typedef struct {
@@ -24,17 +24,20 @@ int wbe_get_keydown(void);
 __attribute__((import_name("wbe_set_color")))
 void wbe_set_color(int color);
 
+__attribute__((import_name("wbe_set_render_target")))
+void wbe_set_render_target(int tgt);
+
 __attribute__((import_name("wbe_clear")))
 void wbe_clear(void);
 
-__attribute__((import_name("wbe_update_buf")))
-void wbe_update_buf(float* ptr, size_t offset, size_t len);
+__attribute__((import_name("wbe_render_quads")))
+void wbe_render_quads(int* ptr, size_t len);
 
-__attribute__((import_name("wbe_draw_buf")))
-void wbe_draw_buf(size_t offset, size_t len);
+__attribute__((import_name("wbe_render_lines")))
+void wbe_render_lines(int* ptr, size_t len);
 
-__attribute__((import_name("wbe_draw_lines")))
-void wbe_draw_lines(float* ptr, size_t len);
+__attribute__((import_name("wbe_render_static")))
+void wbe_render_static(int idx);
 
 __attribute__((import_name("wbe_toggle_scale_factor")))
 void wbe_toggle_scale_factor(void);
@@ -45,52 +48,40 @@ void wbe_send_audiomsg(int msg);
 static VertexBuf vb_init(size_t cap);
 static void vb_push(VertexBuf* self, int x, int y, int z, int w);
 static void vb_push_quad(VertexBuf* self, int dx, int dy, int sx, int sy, int w, int h);
-static void vb_push_quad_gl(VertexBuf* self, int dx, int dy, int sx, int sy, int w, int h);
-static void vb_flush_s(VertexBuf* self, int draw);
+static void vb_flush_s(VertexBuf* self);
 static void vb_flush_l(VertexBuf* self);
 
 static VertexBuf vb_init(size_t cap) {
-    float* ptr = calloc(cap, sizeof(float));
-    if (ptr == NULL) return (VertexBuf) { NULL };
-    return (VertexBuf) { .ptr = ptr, .cap = cap };
+    int* ptr = calloc(cap, sizeof(int));
+    if (ptr == NULL) return (VertexBuf) { NULL, 0, 0 };
+    return (VertexBuf) { .ptr = ptr, .len = 0, .cap = cap };
 }
 
 static void vb_push(VertexBuf* self, int x, int y, int z, int w) {
     if (self->len <= self->cap - 4) {
-        self->ptr[self->len + 0] = (float) x;
-        self->ptr[self->len + 1] = (float) y;
-        self->ptr[self->len + 2] = (float) z;
-        self->ptr[self->len + 3] = (float) w;
+        self->ptr[self->len + 0] = x;
+        self->ptr[self->len + 1] = y;
+        self->ptr[self->len + 2] = z;
+        self->ptr[self->len + 3] = w;
         self->len += 4;
     }
 }
 
-static void vb_push_quad(VertexBuf* self, int dl, int dt, int sl, int st, int w, int h) {
-    int dr = dl + w;
-    int db = dt + h;
-    int sr = sl + w;
-    int sb = st + h;
-    vb_push(self, dl, db, sl, sb);
-    vb_push(self, dl, dt, sl, st);
-    vb_push(self, dr, db, sr, sb);
-    vb_push(self, dr, dt, sr, st);
+static void vb_push_quad(VertexBuf* self, int dx, int dy, int sx, int sy, int w, int h) {
+    vb_push(self, sx, sy, w, h);
+    vb_push(self, dx, dy, w, h);
 }
 
-static void vb_flush_s(VertexBuf* self, int draw) {
+static void vb_flush_s(VertexBuf* self) {
     if (self->len) {
-        wbe_update_buf(self->ptr, self->offset, self->len);
-
-        if (draw) {
-            wbe_draw_buf(self->offset, self->len);
-        }
-
+        wbe_render_quads(self->ptr, self->len);
         self->len = 0;
     }
 }
 
 static void vb_flush_l(VertexBuf* self) {
     if (self->len) {
-        wbe_draw_lines(self->ptr, self->len);
+        wbe_render_lines(self->ptr, self->len);
         self->len = 0;
     }
 }
@@ -132,11 +123,8 @@ void be_set_color(Backend* be, int color) {
 }
 
 void be_set_render_target(Backend* be, int tgt) {
-    if (!tgt) {
-        size_t len = be->sprites.len;
-        vb_flush_s(&be->sprites, 0); 
-        be->sprites.offset = len;
-    }
+    vb_flush_s(&be->sprites); 
+    wbe_set_render_target(tgt);
 }
 
 void be_clear(Backend* be) {
@@ -144,11 +132,11 @@ void be_clear(Backend* be) {
 }
 
 void be_present(Backend* be) {
-    vb_flush_s(&be->sprites, 1); 
+    vb_flush_s(&be->sprites); 
     vb_flush_l(&be->lines); 
 
     if (be->stat) {
-        wbe_draw_buf(0, be->sprites.offset);
+        wbe_render_static(1);
         be->stat = 0; 
     }
 }
@@ -178,7 +166,9 @@ void be_draw_line(Backend* be, int x1, int y1, int x2, int y2) {
     vb_push(&be->lines, x1, y1, x2, y2);
 }
 
-void be_fill_rect(Backend* be, int dl, int dt, int w, int h) {
+void be_fill_rect(Backend* be, int dx, int dy, int dw, int dh) {
+    vb_push(&be->sprites, 0, 0, 1, 1);
+    vb_push(&be->sprites, dx, dy, dw, dh);
 }
 
 void be_send_audiomsg(Backend* be, int msg) {
