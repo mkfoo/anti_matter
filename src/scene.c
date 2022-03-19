@@ -345,21 +345,22 @@ bool sc_death1(GameState* gs, Backend* be) {
 }
 
 bool sc_death2(GameState* gs, Backend* be) {
-    static int c = 0;
     be_get_event(be);
     float phase = gs_phase(gs);
 
-    if (((int) (phase * 100.0f)) % 5 == 0) {
-        c ^= 1;
-        be_set_color(be, 14 + c);
-    } 
+    if (phase > 0.08f && phase < 0.5f) {
+        be_set_color(be, 15);
+    } else if (phase < 0.8f) {
+        be_set_color(be, 14);
+    } else {
+        be_set_color(be, 1);
+    }
 
     gs_render_sprites(gs, be);
     fade_effect(be, 1.0f - phase);
     gs_render_default(gs, be);
 
     if (phase == 1.0f) {
-        be_set_color(be, 1);
         lose_life(gs, be);
     }
 

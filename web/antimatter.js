@@ -111,7 +111,8 @@ class WasmGame {
             if (this.update(timestamp)) {
                 window.requestAnimationFrame(nextFrame);
             } else {
-                this.renderer.clear();
+                const canvas = document.querySelector("canvas");
+                document.body.removeChild(canvas);
                 this.audio.quit();
             }
         };
