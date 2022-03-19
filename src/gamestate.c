@@ -14,9 +14,10 @@ static void render_stats(GameState* gs, Backend* be);
 static void remove_destroyed(GameState* gs);
 static Adjacent find_adjacent(GameState* gs, Sprite* s, Delta d);
 
-GameState* gs_init(void) {
+GameState* gs_init(double start_t) {
     GameState* gs = calloc(1, sizeof(GameState));
     LOG_ERR(gs == NULL, "alloc failure");
+    gs->prev = (int64_t) start_t;
     gs->spd_mod = -8.0f;
     gs->high = 1000;
     add_sprite(gs, 0, 0, ID_NIL);

@@ -28,7 +28,7 @@ struct GameState {
     Sprite sprites[MAX_SPRITES];
 };
 
-GameState* gs_init(void);
+GameState* gs_init(double start_t);
 float gs_phase(GameState* gs);
 bool gs_update(GameState* gs, Backend* be, double timestamp);
 void gs_limit_fps(GameState* self);

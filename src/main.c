@@ -6,7 +6,7 @@ static GameState* gs = NULL;
 #ifdef WASM_BACKEND
 __attribute__((export_name("am_init")))
 #endif
-int am_init(void);
+int am_init(double start_t);
 
 #ifdef WASM_BACKEND
 __attribute__((export_name("am_update")))
@@ -15,10 +15,10 @@ int am_update(double timestamp);
 
 void am_quit(void);
 
-int am_init(void) {
+int am_init(double start_t) {
     if (be == NULL && gs == NULL) {
         be = be_init();
-        gs = gs_init();
+        gs = gs_init(start_t);
 
         if (be == NULL || gs == NULL) { 
             return -1; 
@@ -57,11 +57,11 @@ void am_quit(void) {
 }
 
 int main(void) {
-    if (am_init()) {
+    double time = be_get_millis();
+
+    if (am_init(time)) {
         return EXIT_FAILURE;
     }
-
-    double time = be_get_millis();
 
     while (am_update(time)) {
         gs_limit_fps(gs);    

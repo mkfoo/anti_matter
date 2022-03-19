@@ -92,7 +92,8 @@ class WasmGame {
         await this.renderer.loadTexture(this.palette, pixelData);
         this.audio = new AudioSubsystem(this.name);
         await this.audio.init();
-        if (this.exports.am_init()) throw new Error("init failed");
+        const err = this.exports.am_init(performance.now());
+        if (err) throw new Error("init failed");
 
         document.addEventListener("keydown", (e) => {
             const ev = this.eventVariants[e.key];
@@ -294,4 +295,26 @@ class AudioSubsystem {
     }
 }
 
-new WasmGame("antimatter", 256, 192).main();
+function chromeCompatibilityHack() {
+    const game = new WasmGame("antimatter", 256, 192);
+    let ctx = new AudioContext();
+
+    setTimeout(() => {
+        if (ctx.state === "suspended") {
+            const btn = document.createElement("button");
+            btn.textContent = "Click to play";
+            document.body.appendChild(btn);
+            ctx = null;
+
+            btn.onclick = _ => {
+                document.body.removeChild(btn);
+                game.main();
+            };
+        } else {
+            ctx = null;
+            game.main();
+        }
+    }, 500);
+}
+
+chromeCompatibilityHack();
