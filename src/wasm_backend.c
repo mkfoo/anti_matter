@@ -175,11 +175,11 @@ void be_send_audiomsg(Backend* be, int msg) {
    wbe_send_audiomsg(msg); 
 }
 
-uint64_t be_get_millis(void) {
-    return 1;
+double be_get_millis(void) {
+    return 1.0;
 }
 
-void be_delay(uint32_t dur) {
+void be_delay(int64_t dur) {
     return;
 }
 

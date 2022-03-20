@@ -18,7 +18,7 @@ static void reader_quit(MidiReader* self);
 
 static MidiReader* reader_init(void) {
     MidiReader* self = calloc(1, sizeof(MidiReader));
-    LOG_ERR(self == NULL, "alloc failure");
+    LOG_ERR(self == NULL, "alloc failure")
 
     self->ptr = (uint8_t*) MIDI_DATA;
     size_t len = sizeof MIDI_DATA;
@@ -26,25 +26,25 @@ static MidiReader* reader_init(void) {
     self->track_end = self->data_end;
 
     uint32_t magic = read_u32(self);
-    LOG_ERR(magic != 0x4d546864, "invalid midi header");
+    LOG_ERR(magic != 0x4d546864, "invalid midi header")
 
     uint32_t hlen = read_u32(self);
-    LOG_ERR(hlen != 6, "invalid midi header");
+    LOG_ERR(hlen != 6, "invalid midi header")
 
     uint16_t fmt = read_u16(self);
-    LOG_ERR(fmt != 2, "invalid midi format");
+    LOG_ERR(fmt != 2, "invalid midi format")
 
     self->ntrks = read_u16(self);
-    LOG_ERR(!self->ntrks, "null ntrks");
+    LOG_ERR(!self->ntrks, "null ntrks")
 
     uint16_t div = read_u16(self);
-    LOG_ERR(!div, "null time div");
+    LOG_ERR(!div, "null time div")
 
     self->tracks = calloc(self->ntrks, sizeof(uint8_t**));
-    LOG_ERR(self->tracks == NULL, "alloc failure");
+    LOG_ERR(self->tracks == NULL, "alloc failure")
 
     int err = scan_for_tracks(self);
-    LOG_ERR(err, "invalid track header");
+    LOG_ERR(err, "invalid track header")
 
     return self;
 }
@@ -156,10 +156,10 @@ static void reader_quit(MidiReader* self) {
 
 MidiSeq* ms_init(void) {
     MidiSeq* self = calloc(1, sizeof(MidiSeq));
-    LOG_ERR(self == NULL, "alloc failure");
+    LOG_ERR(self == NULL, "alloc failure")
 
     self->reader = reader_init();
-    LOG_ERR(self->reader == NULL, "midi error");
+    LOG_ERR(self->reader == NULL, "midi error")
 
     self->playing = false;
     return self;

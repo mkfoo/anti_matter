@@ -1,5 +1,6 @@
 #include <math.h>
 #include <assert.h>
+#include <stdio.h>
 #include "gamestate.h"
 #include "level_data.h"
 #include "scene.h"
@@ -16,7 +17,7 @@ static Adjacent find_adjacent(GameState* gs, Sprite* s, Delta d);
 
 GameState* gs_init(double start_t) {
     GameState* gs = calloc(1, sizeof(GameState));
-    LOG_ERR(gs == NULL, "alloc failure");
+    LOG_ERR(gs == NULL, "alloc failure")
     gs->prev = (int64_t) start_t;
     gs->spd_mod = -8.0f;
     gs->high = 1000;
@@ -51,7 +52,7 @@ bool gs_update(GameState* gs, Backend* be, double timestamp) {
 
 void gs_limit_fps(GameState* self) {
     int64_t next = self->prev + MS_PER_FRAME;
-    int64_t now = be_get_millis();
+    int64_t now = (int64_t) be_get_millis();
 
     if (next > now) {
         be_delay(next - now);
@@ -194,7 +195,7 @@ void gs_render_help(GameState* gs, Backend* be) {
     int y = 28;
     int m = 16;
 
-    if (gs->phase > 0.25) {
+    if (gs->phase > 0.25f) {
         be_blit_text(be, x + 31, y, "PAUSED");
     }
 

@@ -61,6 +61,6 @@ void be_blit_static(Backend* be);
 void be_draw_line(Backend* be, int x1, int y1, int x2, int y2);
 void be_fill_rect(Backend* be, int x, int y, int w, int h);
 void be_send_audiomsg(Backend* be, int msg);
-uint64_t be_get_millis(void);
-void be_delay(uint32_t dur);
+double be_get_millis(void);
+void be_delay(int64_t dur);
 void be_quit(Backend* be);

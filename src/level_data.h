@@ -1,7 +1,7 @@
 #pragma once
 #include "sprite.h"
 
-const Sprite PROTOTYPES[7] = {
+static const Sprite PROTOTYPES[7] = {
     { .flags = F_NIL, 0 },
     { .flags = F_PLAYER_CHAR | F_ANIMATED | F_UNSTABLE, 1 },
     { .flags = F_PLAYER_CHAR | F_ANIMATED | F_UNSTABLE | F_POLARITY, 9 },
@@ -11,11 +11,11 @@ const Sprite PROTOTYPES[7] = {
     { .flags = F_MOVABLE | F_ANIMATED | F_UNSTABLE | F_POLARITY, 37 },
 };
 
-const int32_t LEVEL_ENERGY[MAX_LEVEL] = {
+static const int32_t LEVEL_ENERGY[MAX_LEVEL] = {
     2160, 1200, 1264, 1728, 2608, 8000
 };
 
-const uint8_t LEVEL_DATA[MAP_W * MAP_H * MAX_LEVEL] = {
+static const uint8_t LEVEL_DATA[MAP_W * MAP_H * MAX_LEVEL] = {
     50, 54, 54, 54, 54, 54, 54, 54, 54, 54, 51,  
     55,  2,  0,  0,  0,  0,  0,  0,  0,  0, 55,  
     55,  0,  0, 50, 54, 88, 54, 51,  0,  0, 55,  

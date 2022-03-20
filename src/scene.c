@@ -1,3 +1,4 @@
+#include <stdio.h>
 #include "scene.h"
 #include "sprite.h"
 
@@ -41,7 +42,7 @@ bool sc_splash(GameState* gs, Backend* be) {
     int y0 = 80;
 
     if (phase < 0.8f) {
-        if (phase > 0.4) {
+        if (phase > 0.4f) {
             be_blit_text(be, x0 + 24, y0 - 8, "(Not)");
         }
 
@@ -84,7 +85,7 @@ bool sc_title_move(GameState* gs, Backend* be) {
     float phase = gs_phase(gs);
     int x0 = 64;
     int y0 = 88;
-    int y = y0 - phase * 32.0f;
+    int y = y0 - (int) (phase * 32.0f);
 
     render_title(be, x0, y);
 
@@ -137,7 +138,7 @@ bool sc_fade_out(GameState* gs, Backend* be) {
     float phase = gs_phase(gs);
     int x0 = 64;
     int y0 = 56;
-    int y = y0 + phase * 64.0f;
+    int y = y0 + (int) (phase * 64.0f);
     if (y > 88) y = 88;
     render_title(be, x0, y);
 

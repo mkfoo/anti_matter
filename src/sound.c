@@ -7,7 +7,7 @@
 #define MAX_VOL 10
 #define RNG_SEED 0x1bac
 
-const int32_t PTAB[128] = {
+static const int32_t PTAB[128] = {
     539397, 509123, 480548, 453577, 428120, 404091, 381411, 360004, 339799, 320727, 302726, 285736,
     269698, 254561, 240274, 226788, 214060, 202046, 190706, 180002, 169899, 160364, 151363, 142868,
     134849, 127281, 120137, 113394, 107030, 101023, 95353, 90001, 84950, 80182, 75682, 71434,
@@ -140,13 +140,13 @@ static void toggle_mute(SoundGen* self) {
 
 SoundGen* sg_init(void) {
     SoundGen* self = calloc(1, sizeof(SoundGen));
-    LOG_ERR(self == NULL, "alloc failure");
+    LOG_ERR(self == NULL, "alloc failure")
 
     self->vol = MAX_VOL / 2;
     self->prev_vol = MAX_VOL / 2;
 
     self->midi = ms_init();
-    LOG_ERR(self->midi == NULL, "sequencer error");
+    LOG_ERR(self->midi == NULL, "sequencer error")
     
     for (size_t c = 0; c < 3; c++) {
         self->chans[c].osc_period = PTAB[60];
@@ -183,7 +183,7 @@ void sg_handle_message(SoundGen* self, int msg) {
 
 void sg_generate_i16(SoundGen* self, uint8_t* stream, int len) {
     int16_t* buf = (int16_t*) stream; 
-    size_t smpls = len / sizeof(int16_t);
+    size_t smpls = (size_t) len / sizeof(int16_t);
     MidiEvent event;
     int16_t out;
 

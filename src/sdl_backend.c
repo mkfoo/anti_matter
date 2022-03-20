@@ -36,16 +36,16 @@ Backend* be_init(void) {
     err = SDL_Init(SDL_INIT_VIDEO | 
                    SDL_INIT_AUDIO | 
                    SDL_INIT_EVENTS);
-    LOG_ERR(err, SDL_GetError());
+    LOG_ERR(err, SDL_GetError())
 
     be->win = SDL_CreateWindow(WINDOW_TITLE,
                                SDL_WINDOWPOS_CENTERED,
                                SDL_WINDOWPOS_CENTERED,
                                WINDOW_W, WINDOW_H, 0);
-    LOG_ERR(be->win == NULL, SDL_GetError());
+    LOG_ERR(be->win == NULL, SDL_GetError())
 
     be->ren = SDL_CreateRenderer(be->win, -1, 0);
-    LOG_ERR(be->ren == NULL, SDL_GetError());
+    LOG_ERR(be->ren == NULL, SDL_GetError())
 
     SDL_Surface* surf = SDL_CreateRGBSurfaceWithFormatFrom((void*) TEXTURE_DATA, 
                                                                    TEXTURE_W, 
@@ -53,30 +53,30 @@ Backend* be_init(void) {
                                                                    8, 
                                                                    TEXTURE_W, 
                                                                    SDL_PIXELFORMAT_INDEX8);
-    LOG_ERR(surf == NULL, SDL_GetError());
+    LOG_ERR(surf == NULL, SDL_GetError())
 
     err = SDL_SetPaletteColors(surf->format->palette, COLORS, 0, 16);
-    LOG_ERR(err, SDL_GetError());
+    LOG_ERR(err, SDL_GetError())
 
     be->tex = SDL_CreateTextureFromSurface(be->ren, surf);
-    LOG_ERR(be->tex == NULL, SDL_GetError());
+    LOG_ERR(be->tex == NULL, SDL_GetError())
     SDL_FreeSurface(surf);
     
     err = SDL_SetTextureBlendMode(be->tex, SDL_BLENDMODE_BLEND);
-    LOG_ERR(err, SDL_GetError());
+    LOG_ERR(err, SDL_GetError())
 
     SDL_PixelFormatEnum actual_fmt;
     err = SDL_QueryTexture(be->tex, &actual_fmt, NULL, NULL, NULL);
-    LOG_ERR(err, SDL_GetError());
+    LOG_ERR(err, SDL_GetError())
 
     be->stx = SDL_CreateTexture(be->ren, actual_fmt, SDL_TEXTUREACCESS_TARGET, WINDOW_W, WINDOW_H);
-    LOG_ERR(be->stx == NULL, SDL_GetError());
+    LOG_ERR(be->stx == NULL, SDL_GetError())
 
     err = SDL_SetTextureBlendMode(be->stx, SDL_BLENDMODE_BLEND);
-    LOG_ERR(err, SDL_GetError());
+    LOG_ERR(err, SDL_GetError())
 
     be->snd = sg_init();
-    LOG_ERR(be->snd == NULL, "sg_init failed");
+    LOG_ERR(be->snd == NULL, "sg_init failed")
 
     spec_wanted = (SDL_AudioSpec) {
         .freq = SAMPLE_RATE,
@@ -90,7 +90,7 @@ Backend* be_init(void) {
     };
 
     be->dev = SDL_OpenAudioDevice(NULL, 0, &spec_wanted, &spec_received, 0);
-    LOG_ERR(be->dev == 0, SDL_GetError());
+    LOG_ERR(be->dev == 0, SDL_GetError())
 
     SDL_PauseAudioDevice(be->dev, 0);
     be_toggle_scale(be);
@@ -264,10 +264,10 @@ static void be_toggle_scale(Backend* be) {
     }
 }
 
-uint64_t be_get_millis(void) {
-    return SDL_GetTicks();
+double be_get_millis(void) {
+    return (double) SDL_GetTicks();
 }
 
-void be_delay(uint32_t dur) {
-    SDL_Delay(dur);
+void be_delay(int64_t dur) {
+    SDL_Delay((uint32_t) dur);
 }
