@@ -107,17 +107,27 @@ void gs_load_level(GameState* gs) {
 
 void gs_adv_state(GameState* gs) {
     uint32_t moves = gs->lag * MOVEMENT_SPEED;
+    Sprite* anti = &gs->sprites[ID_ANTI];
+    Sprite* matter = &gs->sprites[ID_MATTER];
 
-    for (size_t i = 1; i < gs->n_sprites; i++) {
+    for (size_t t = 0; t < moves; t++) {
+        if (is_moving(anti)) {
+            update_sprite(anti);
+            update_sprite(matter);
+            gs->energy--;
+        }
+
+        if (is_overlapping(anti, matter)) {
+            return; 
+        }
+    }
+
+    for (size_t i = 3; i < gs->n_sprites; i++) {
         Sprite* s = &gs->sprites[i];
 
         for (size_t t = 0; t < moves; t++) {
             if (is_moving(s)) {
                 update_sprite(s);
-
-                if (has_flag(s, F_PLAYER_CHAR | F_POLARITY)) { 
-                    gs->energy -= 1;
-                }
             }
         }
     }
