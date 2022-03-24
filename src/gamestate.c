@@ -21,7 +21,7 @@ GameState* gs_init(double start_t) {
     gs->prev = (int64_t) start_t;
     gs->spd_mod = -8.0f;
     gs->high = 1000;
-    add_sprite(gs, 0, 0, ID_NIL);
+    add_sprite(gs, -1, -1, ID_NIL);
     gs_set_scene(gs, sc_splash, 5); 
     return gs;
 }
@@ -154,7 +154,7 @@ void gs_post_update(GameState* gs, Backend* be) {
     lose |= check_overlap(gs, be, gs->adj_a.front, gs->adj_a.next);
     lose |= check_overlap(gs, be, gs->adj_m.front, gs->adj_m.next);
 
-    if (is_aligned(anti) && is_aligned(matter)) {
+    if (anti->p.x <= 160 && anti->p.y <= 160) {
         lose |= check_los(gs, anti, matter);
 
         if (gs->to_clear <= 0 && !lose) {

@@ -64,13 +64,13 @@ bool is_overlapping(Sprite* self, Sprite* other) {
 }
 
 bool point_between(Point self, Point p1, Point p2) {
-    if (self.x == p1.x && p1.x == p2.x) {
+    if (num_between(self.x, p1.x - 8, p1.x + 8)) {
         return num_between(self.y, p1.y, p2.y);
-    } 
+    }
 
-    if (self.y == p1.y && p1.y == p2.y) {
+    if (num_between(self.y, p1.y - 8, p1.y + 8)) {
         return num_between(self.x, p1.x, p2.x);
-    } 
+    }
         
     return false;
 }
@@ -126,7 +126,7 @@ void destroy_sprite(Sprite* self) {
         self->d = (Delta) { 0, 0 };
         self->tile += 4;
     } else {
-        *self = (Sprite) { { 0, 0 }, { 0, 0 }, F_NIL, 0 };
+        *self = (Sprite) { { -1, -1 }, { 0, 0 }, F_NIL, 0 };
     }
 }
 
@@ -137,11 +137,11 @@ static bool should_stop(Sprite* self) {
 
 static bool num_between(int16_t self, int16_t a, int16_t b) {
     if (a < b) {
-        return self > a && self < b;
+        return self >= a && self <= b;
     } 
 
     if (b < a) {
-        return self > b && self < a;
+        return self >= b && self <= a;
     }
 
     return false;
