@@ -346,7 +346,7 @@ static void remove_destroyed(GameState* gs) {
 
         if (has_flag(s, F_DESTROY)) {
             gs->to_clear--;
-            gs_score(gs, 80);
+            gs_score(gs, DESTROY_BONUS);
             destroy_sprite(s);
         }
     }

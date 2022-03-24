@@ -291,11 +291,11 @@ bool sc_level_clear(GameState* gs, Backend* be) {
     be_get_event(be);
     gs_render_sprites(gs, be);
     gs_render_default(gs, be);
-    gs->energy -= 8;
+    gs->energy -= 4;
 
     if (gs->energy > 0) {
-        gs_score(gs, 1);
-        gain++;
+        gs_score(gs, CLEAR_BONUS);
+        gain += CLEAR_BONUS;
     } else {
         be_send_audiomsg(be, MSG_STOP);
         gs->energy = 0;

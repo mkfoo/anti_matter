@@ -1,17 +1,19 @@
 #pragma once
 
 #define ANIM_SPEED 0.0012f
-#define BONUS_LIMIT 4800
+#define BONUS_LIMIT 3600
 #define BUF_LEN 1024
 #define CHARS_PER_ROW 20
+#define CLEAR_BONUS 8
 #define DECOR_TILE_BASE 70
+#define DESTROY_BONUS 32
 #define FONT_H 8
 #define FONT_OFFSET 328
 #define FONT_W 8
 #define FRAME_W 8
 #define MAP_H 11
 #define MAP_W 11
-#define MAX_LEVEL 6
+#define MAX_LEVEL 7
 #define MAX_SPRITES 122
 #define MAX_LAG 800
 #define MAX_X 176
