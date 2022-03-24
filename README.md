@@ -5,4 +5,4 @@
 
 A traditional block puzzle in the vein of Sokoban and Eggerland Mystery.
 
-**Development status: pre-alpha**
+You can play the pre-alpha version [here](https://mkfoo.github.io/anti/matter).
