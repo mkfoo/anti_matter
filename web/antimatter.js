@@ -269,7 +269,7 @@ class CanvasRenderer {
 
 class AudioSubsystem {
     constructor(name) {
-        this.ctx = new AudioContext();
+        this.ctx = new AudioContext({ sampleRate: 44100 });
         this.name = name;
     }
 
