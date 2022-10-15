@@ -4,6 +4,7 @@ class WasmGame {
         this.width = width;
         this.height = height;
         this.events = [];
+        this.touches = {};
     }
 
     eventVariants = {
@@ -82,7 +83,7 @@ class WasmGame {
     };
 
     async main() {
-        const mod = await WebAssembly.compileStreaming(fetch(this.name + ".wasm"));
+        const mod = await WebAssembly.compileStreaming(fetch(`./${this.name}.wasm`));
         const inst = await WebAssembly.instantiate(mod, this.imports);
         this.exports = inst.exports;
         this.update = inst.exports.am_update;
@@ -106,6 +107,16 @@ class WasmGame {
                 }
             } 
         });
+
+        window.addEventListener("resize", e => {
+            const sf = this.getScaleFactor(this.width, this.height);
+            this.renderer.setScaleFactor(sf);
+        });
+
+        document.addEventListener("touchstart", e => { this.handleStart(e) });
+        document.addEventListener("touchmove", e => { this.handleMove(e) });
+        document.addEventListener("touchend", e => { this.handleEnd(e) });
+        document.addEventListener("touchcancel", e => { this.handleEnd(e) });
 
         const nextFrame = (timestamp) => {
             if (this.update(timestamp)) {
@@ -137,12 +148,67 @@ class WasmGame {
 
         for (let n = 10; n > 1; n--) {
             if (w >= origW * n && h >= origH * n) {
-                console.log(n);
                 return n;
             }
         }
 
         return 1;
+    }
+
+    handleStart(e) {
+        e.preventDefault();
+
+        for (let t of e.changedTouches) {
+            this.touches[t.identifier] = t;
+        }
+
+        console.log(this.touches);
+
+        if (!this.tap) {
+            this.tap = true;
+            setTimeout(() => { this.tap = false; }, 250);
+        } else {
+            const ev = this.eventVariants[" "];
+            this.events.push(ev);
+            this.tap = false;
+        }
+    }
+
+    handleMove(e) {
+        e.preventDefault();
+        
+        let key = null;
+
+        for (let t of e.changedTouches) {
+            const m = 25;
+            const prev = this.touches[t.identifier];
+            const dx = t.pageX - prev.pageX;
+            const dy = t.pageY - prev.pageY;
+
+            if (dx > m) 
+                key = "ArrowRight";
+            else if (dy > m)
+                key = "ArrowDown";
+            else if (dx < -m)
+                key = "ArrowLeft";
+            else if (dy < -m)
+                key = "ArrowUp";
+          
+            this.touches[t.identifier] = t;
+        }
+
+        if (key) {
+            const ev = this.eventVariants[key];
+            this.events.push(ev);
+        }
+    }
+
+    handleEnd(e) {
+        e.preventDefault();
+
+        for (let t of e.changedTouches) {
+            delete this.touches[t.identifier];
+        }
     }
 }
 
@@ -266,7 +332,7 @@ class AudioSubsystem {
     async init() {
         const modName = this.name + "_audio";
         await this.ctx.audioWorklet.addModule(modName + ".js");
-        const res = await fetch(modName + ".wasm");
+        const res = await fetch(`./${modName}.wasm`);
         const wasmSrc = await res.arrayBuffer();
         const options = { 
             numberOfInputs: 0, 
