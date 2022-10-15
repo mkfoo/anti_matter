@@ -135,8 +135,9 @@ class WasmGame {
         const w = window.visualViewport.width;
         const h = window.visualViewport.height;
 
-        for (let n of [8, 4, 2]) {
+        for (let n = 10; n > 1; n--) {
             if (w >= origW * n && h >= origH * n) {
+                console.log(n);
                 return n;
             }
         }
@@ -235,22 +236,11 @@ class CanvasRenderer {
     }
 
     toggleScaleFactor() {
-        switch (this.scaleFactor) {
-            case 1:
-                this.setScaleFactor(2);
-                break;
-            case 2:
-                this.setScaleFactor(4);
-                break;
-            case 4:
-                this.setScaleFactor(8);
-                break;
-            default:
-                this.setScaleFactor(1);
-        }
+        this.setScaleFactor((this.scaleFactor + 1) % 11);
     }
 
-    setScaleFactor(sf) {
+    setScaleFactor(n) {
+        const sf = n || 1;
         const ctx = this.contexts[0];
         ctx.canvas.style = `
             transform-origin: 0 0; 
