@@ -21,6 +21,7 @@ GameState* gs_init(double start_t) {
     gs->prev = (int64_t) start_t;
     gs->spd_mod = -8.0f;
     gs->high = 1000;
+    gs->los = false;
     add_sprite(gs, -1, -1, ID_NIL);
     gs_set_scene(gs, sc_splash, 5); 
     return gs;
@@ -68,6 +69,7 @@ void gs_set_scene(GameState* gs, SceneFn* scene, uint32_t delay) {
 void gs_load_level(GameState* gs) {
     gs->n_sprites = 1;
     gs->to_clear = 0;
+    gs->los = false;
     gs->energy = LEVEL_ENERGY[gs->level];
     Sprite* nil = &gs->sprites[ID_NIL];
     gs->adj_a = (Adjacent) { nil, nil, nil, { 0, 0 } };
@@ -117,20 +119,24 @@ void gs_adv_state(GameState* gs) {
             gs->energy--;
         }
 
-        if (is_overlapping(anti, matter)) {
-            return; 
-        }
-    }
+        for (size_t i = 3; i < gs->n_sprites; i++) {
+            Sprite* s = &gs->sprites[i];
 
-    for (size_t i = 3; i < gs->n_sprites; i++) {
-        Sprite* s = &gs->sprites[i];
-
-        for (size_t t = 0; t < moves; t++) {
             if (is_moving(s)) {
                 update_sprite(s);
             }
         }
+
+        bool prev_los = gs->los;
+        gs->los = check_los(gs, anti, matter);
+
+        if (!prev_los && gs->los)
+            return;
+
+        if (is_overlapping(anti, matter))
+            return; 
     }
+
 }
 
 void gs_post_update(GameState* gs, Backend* be) {
@@ -153,16 +159,13 @@ void gs_post_update(GameState* gs, Backend* be) {
     lose |= check_overlap(gs, be, gs->adj_a.front, gs->adj_m.front);
     lose |= check_overlap(gs, be, gs->adj_a.front, gs->adj_a.next);
     lose |= check_overlap(gs, be, gs->adj_m.front, gs->adj_m.next);
+    lose |= gs->los;
 
-    if (anti->p.x <= 160 && anti->p.y <= 160) {
-        lose |= check_los(gs, anti, matter);
-
-        if (gs->to_clear <= 0 && !lose) {
-            gs_set_scene(gs, sc_level_clear, 0);
-            be_send_audiomsg(be, MSG_STOP);
-            be_send_audiomsg(be, MSG_REPEAT | MSG_PLAY | 10);
-            return;
-        }
+    if (gs->to_clear <= 0 && !lose) {
+        gs_set_scene(gs, sc_level_clear, 0);
+        be_send_audiomsg(be, MSG_STOP);
+        be_send_audiomsg(be, MSG_REPEAT | MSG_PLAY | 10);
+        return;
     }
 
     check_overlap(gs, be, anti, matter);
@@ -321,6 +324,9 @@ static bool check_overlap(GameState* gs, Backend* be, Sprite* s1, Sprite* s2) {
 }
 
 static bool check_los(GameState* gs, Sprite* s1, Sprite* s2) {
+    if (s1->p.x > 160 || s1->p.y > 160)
+        return false;
+
     Delta d = get_delta(s1, s2);
 
     if (d.x == 0 || d.y == 0) {

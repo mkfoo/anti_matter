@@ -23,6 +23,7 @@ struct GameState {
     int32_t lives;
     int32_t to_clear;
     uint32_t n_sprites;
+    bool los;
     Adjacent adj_a;
     Adjacent adj_m;
     Sprite sprites[MAX_SPRITES];
