@@ -162,8 +162,6 @@ class WasmGame {
             this.touches[t.identifier] = t;
         }
 
-        console.log(this.touches);
-
         if (!this.tap) {
             this.tap = true;
             setTimeout(() => { this.tap = false; }, 250);
