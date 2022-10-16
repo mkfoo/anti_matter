@@ -113,8 +113,8 @@ class WasmGame {
             this.renderer.setScaleFactor(sf);
         });
 
-        document.addEventListener("touchstart", e => { this.handleStart(e) });
-        document.addEventListener("touchmove", e => { this.handleMove(e) });
+        document.addEventListener("touchstart", e => { this.handleStart(e) }, { passive: false });
+        document.addEventListener("touchmove", e => { this.handleMove(e) }, { passive: false });
         document.addEventListener("touchend", e => { this.handleEnd(e) });
         document.addEventListener("touchcancel", e => { this.handleEnd(e) });
 
